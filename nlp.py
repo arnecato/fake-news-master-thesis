@@ -1,16 +1,26 @@
 import pandas as pd
-import string
+import re
 
-isot_true = pd.read_csv('dataset/ISOT/True-short.csv')
 
-def remove_punctuation(text):
-    translator = str.maketrans('', '', string.punctuation)
-    return text.translate(translator)        
+isot_true = pd.read_csv('dataset/ISOT/True.csv')
+isot_fake = pd.read_csv('dataset/ISOT/Fake.csv')
 
-text = isot_true.iloc[0]['title'] + ". " + isot_true.iloc[0]['text']
-print(text)
-text = text.lower()
-print('---\n', text)
-text = remove_punctuation(text)
-print('---\n', text)
+removal_pattern = r'[,“”’‘():\'-]'
+whitespace_pattern = r'\s+'
 
+def apply_and_save(df, filename):
+    df['title'] = df['title'].apply(clean_text)
+    df['text'] = df['text'].apply(clean_text)
+    df.to_csv(filename)    
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(removal_pattern, '', text)
+    text = text.replace('...', ' . ')
+    text = text.replace('. ', ' . ')
+    text = re.sub(whitespace_pattern, ' ', text)
+    text = text.replace(' . . ', ' . ')
+    return text
+
+apply_and_save(isot_true, 'dataset/ISOT/True_cleaned.csv')
+apply_and_save(isot_fake, 'dataset/ISOT/Fake_cleaned.csv')
