@@ -5,7 +5,7 @@ import re
 isot_true = pd.read_csv('dataset/ISOT/True.csv')
 isot_fake = pd.read_csv('dataset/ISOT/Fake.csv')
 
-removal_pattern = r'[,“”’‘():\'-]'
+removal_pattern = r'[,“”’‘():\'-@]'
 whitespace_pattern = r'\s+'
 
 def apply_and_save(df, filename):

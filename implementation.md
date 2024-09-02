@@ -1,10 +1,36 @@
-# Structure
+# Plan
 - Datasets
-- Implementation of three different approaches
+    - batch-loading of dataset
+    - sparse tf-idf objects (index[],)
+    - DVC
+    - versioning and storing of datasets
+    - ELT TF-IDF
+    - automation loading and converting
+    - automation running experiments, measuring and plotting results
+- Implementation baseline
+    - Plotting of results
+- Implementation MO NSA wo/feature selection
+- Implementation MO NSA w/embedded feature selection + VLC
 - Results
 
+# Notes
+Word vectors - retrieved from pretrained model (word2vec or FastText)
+Sentence vectors - average of word vectors in sentence
+Document vectors - average of sentence vectors in document
+
+Use spacy to tokenize documents. Retrieve word, sentence and document vectors.
+
+OK Check how spacy tokenizes words, sentences and documents. Does it keep the numbers or nouns?
+OK Proper document vector. Not average of all words. Average of all sentence vectors instead.
+
+Spacy is slow when using sentence segmentation. Could I just split on periods?
+Investigate Sentencizer
+
+Next is to create vector representations of documents in datasets.
+
 # Baseline single-objective NSA
-Similar to work done in (Ripon et al., n.d.)by Ripon et al.
+Similar to work done in (Ripon et al., n.d.) by Ripon et al.
+
 Objective 1: Maximizing RR
 Setting RR next to nearest self (incl other detectors)
 5-fold training and test set 75%/25% and measure:
@@ -23,7 +49,7 @@ Full feature vectors used.
 1. Avg. precision
 2. Avg. recall
 
-# Multi-objective NSA with feature selection and VLC
+# Multi-objective NSA with embedded feature selection and VLC
 Same as above, except with embedded feature selection and variable-length chromosome method.
 Detector encoding has variable length. Selects which subset of features to use in the detector, e.g. [49,355,1433,254]. Mutation and recombination operators will add and subtract feature subsets.
 
