@@ -21,20 +21,23 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         sample_size = len(true_df)
     true_df = true_df.sample(sample_size, random_state=42)
     dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1) 
-    vectors_df = pd.DataFrame(true_df['vector'].tolist())
-    reduced_vectors = dimension_reducer.fit_transform(vectors_df)
-    true_df['vector'] = [np.array(vec) for vec in reduced_vectors]
-    true_training_df, tmp_df = train_test_split(true_df, test_size=0.6, random_state=42)
+    true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
+    print('true_training_df', true_training_df.shape)
+    # reducing dimensions based on only true training data (assumption we have no access to other data)
+    dimension_reducer.fit(np.vstack(true_training_df['vector'].values))
+    reduced_true_vectors = dimension_reducer.transform(np.vstack(true_df['vector'].values))
+    true_df['vector'] =  [np.array(vec) for vec in reduced_true_vectors]
+    true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
     true_validation_df, true_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
-    
+ 
     fake_df = pd.read_hdf(filepath_fake, key='df')
     fake_df = fake_df.sample(sample_size, random_state=42)
-    vectors_df = pd.DataFrame(fake_df['vector'].tolist())
-    reduced_vectors = dimension_reducer.transform(vectors_df)
+    # all fake data can be trransformed at once
+    reduced_vectors = dimension_reducer.transform(np.vstack(fake_df['vector'].values))
     fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
-    fake_training_df, tmp_df = train_test_split(fake_df, test_size=0.6, random_state=42)
+    fake_training_df, tmp_df = train_test_split(fake_df, test_size=0.4, random_state=42)
     fake_validation_df, fake_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
-    
+
     # save to file
     if sample_size == -1:
         sample_size = 'all'
@@ -45,6 +48,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
     fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
     fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
+    
     # add metadata
     with h5py.File(filepath, 'a') as f:
         # Add metadata at the file level
@@ -54,7 +58,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         f.attrs['neighbors'] = neighbors
         f.attrs['sample_size'] = sample_size
 
-    print('Dim reduced to:', len(true_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
+    print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
 
 def plot_file(filepath, true_keys, fake_keys):
     true_df = pd.read_hdf(filepath, key=true_keys[0])
@@ -70,9 +74,9 @@ def plot_file(filepath, true_keys, fake_keys):
         dim = f.attrs['dim']
         neighbors = f.attrs['neighbors']
         sample_size = f.attrs['sample_size']
-    plot(true_df, fake_df, word_embedding, neighbors, sample_size)
+    plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys)
 
-def plot(true_df, fake_df, word_embedding, neighbors, sample_size):
+def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys):
     # Extract the 2D vectors
     true_vectors_2d = np.vstack(true_df['vector'].values)
     #true_validation_df = pd.concat([true_validation_df, true_test_df])
@@ -84,11 +88,12 @@ def plot(true_df, fake_df, word_embedding, neighbors, sample_size):
 
     # Plot the 2D vectors
     plt.figure(figsize=(10, 8))
+    print(true_vectors_2d.shape, fake_vectors_2d.shape)
     plt.scatter(true_vectors_2d[:, 0], true_vectors_2d[:, 1], s=5, color='blue', alpha=0.25)
     plt.scatter(fake_vectors_2d[:, 0], fake_vectors_2d[:, 1], s=5, color='red', alpha=0.25)
     #plt.scatter(true_validation_df_vectors_2d[:, 0], true_validation_df_vectors_2d[:, 1], s=5, color='blue', alpha=0.25)
     #plt.scatter(fake_validation_df_vectors_2d[:, 0], fake_validation_df_vectors_2d[:, 1], s=5, color='red', alpha=0.25)
-    plt.title(f'UMAP {word_embedding} - {neighbors} neighbors - {sample_size} samples')
+    plt.title(f'UMAP {word_embedding} - {neighbors} neighbors - {sample_size} samples - {true_keys} {fake_keys}')
     plt.xlabel('UMAP 1')
     plt.ylabel('UMAP 2')
     plt.show()
@@ -123,6 +128,6 @@ def main():
 
 
 #  python.exe .\umap_explore.py umap --filepath_true="dataset/ISOT/True_bert.h5" --filepath_fake="dataset/ISOT/Fake_bert.h5" --word_embedding='bert' --dim=2 --neighbors=700 --sample_size=1000
-# python.exe .\umap_explore.py plot --filepath="dataset/ISOT/True_Fake_bert_umap_2dim_700_1000.h5"
+# python.exe .\umap_tool.py plot --filepath="dataset/ISOT/True_Fake_bert_umap_2dim_700_1000.h5"
 if __name__ == '__main__':
     main()
