@@ -1,204 +1,12 @@
 import pandas as pd
 import numpy as np
 import random
-from vectorfactory import SpacyVectorFactory
-#from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import train_test_split
 import time
-import json
-from bert import BERTVectorFactory
-from sklearn.decomposition import PCA
+import argparse
+import os
+from detectors import Detector, DetectorSet
 from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, circle_overlap_area
 
-class Detector():
-    def __init__(self, vector, radius, distance_type, detector_set):
-        self.vector = vector
-        self.radius = radius
-        self.fitness = radius
-        self.distance_type = distance_type
-        self.compute_fitness(detector_set)
-
-    @classmethod
-    def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type):
-        best_vector = np.random.uniform(low=feature_low, high=feature_high)
-        exceeding_max = best_vector > feature_high
-        exceeding_max_negative = best_vector < feature_low
-        
-        if np.any(exceeding_max) or np.any(exceeding_max_negative):
-            print('exceeding max C',best_vector) 
-        best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)   
-        #print('Creating new detector', mean, stdev, best_vector)
-        if detector_set is not None and len(detector_set.detectors) > 0:
-            for _ in range(10):
-                vector = np.random.uniform(low=feature_low, high=feature_high)
-                distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, vector, distance_type)
-                if distance_to_detector > best_distance:
-                    best_distance = distance_to_detector
-                    best_vector = vector   
-                    #print('new vector', best_distance, vector)
-        detector = Detector(best_vector, 0, distance_type, detector_set)
-        distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)
-        distance_to_self, nearest_self = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type)
-        
-        detector.radius = np.min([distance_to_detector, distance_to_self]) 
-        #print('created new', detector.radius, detector.vector)
-        detector.compute_fitness(detector_set)    
-
-        exceeding_max = best_vector > feature_high
-        exceeding_max_negative = best_vector < feature_low
-        
-        if np.any(exceeding_max) or np.any(exceeding_max_negative):
-            print('exceeding max CREATE DETECTOR',best_vector)        
-        return detector
-    
-    @classmethod
-    #def compute_maximum_radius_detector_and_self(cls, self_df, self_region_radius, detector_set, vector, distance_type):
-    #    #print('returning:', np.min([Detector.compute_maximum_radius(self_df, self_region_radius, vector, distance_type), Detector.compute_maximum_radius_to_detector_set(detector_set, vector, distance_type)]))
-    #    return np.min([Detector.compute_maximum_radius(self_df, self_region_radius, vector, distance_type), Detector.compute_maximum_radius_to_detector_set(detector_set, vector, distance_type)])
-    
-    @classmethod
-    def compute_closest_detector(cls, detector_set, vector, distance_type):
-        distances = []
-        if detector_set is not None and len(detector_set.detectors) > 0:
-            for detector in detector_set.detectors:
-                if detector.distance_type == distance_type == 'cosine':
-                    #distance = np.linalg.norm(vector - detector.vector) - detector.radius
-                    distance = fast_cosine_distance_with_radius(detector.vector, vector, detector.radius, 0) # TODO: be aware of detector radius tweak
-                    #print(euclidean_distance(detector.vector, vector, detector.radius, 0), distance)
-                elif detector.distance_type == distance_type == 'euclidean':
-                    #distance = np.linalg.norm(vector - detector.vector) - detector.radius
-                    #distance = euclidean_distance(detector.vector, vector, detector.radius, 0) # TODO: be aware of detector radius tweak
-                    distance = euclidean_distance(detector.vector, vector, detector.radius * 0.75, 0) # TODO: be aware of detector radius tweak
-                    #print('detector distances', detector.radius, distance, detector.vector[0], detector.vector[1], detector.vector[2], vector[0], vector[1], vector[2])
-                distances.append(distance)
-            max_distance = np.min(distances)  # maximum radius is set to the closest self
-            max_index = np.argmin(distances)  # get the index of the max distance vector
-            #print('Copute closest detector', euclidean_distance(detector_set.detectors[max_index].vector, vector, detector.radius, 0), max_distance) 
-            return max_distance, detector_set.detectors[max_index].vector
-        else:
-            return 999999.0, None
-        
-
-    @classmethod
-    def compute_closest_self(cls, self_df, self_region_radius, vector, distance_type):
-        distances = []
-        #vectors = self_df['vector']
-        #distances = np.linalg.norm(vector - vectors, axis=1) - self_region_radius
-        #print('type:', type(distances))
-        #distances = 1 - fast_cosine_similarity([vector] * len(vectors), vectors) - self_region_radius
-        #print('type:', type(distances))
-        #print('Length of distances', len(distances))
-        #distances = cosine_similarity([vector], vectorsnp.linalg.norm(vector - vectors, axis=1) - self_region_radius
-        
-        # check for distances to self samples
-        for row in self_df.itertuples(index=False, name=None):
-            if distance_type == 'cosine':
-                distance = fast_cosine_distance_with_radius(vector, row[1], 0, self_region_radius)
-            elif distance_type == 'euclidean':
-                distance = euclidean_distance(vector, row[1], 0, self_region_radius)
-            #if distance < 0:
-            #    print('Negative distance:', distance, vector, row[1])
-            distances.append(distance)
-        # check for distances to other mature detectors
-        #print('min before detectors', np.min(distances))
-
-        #print('min after self:', np.min(distances))
-        max_distance = np.min(distances)  # maximum radius is set to the closest self
-        max_index = np.argmin(distances)  # get the index of the lowest distance
-        #if euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius) != min_distance:
-        #    print('NOT CORRECT VECTOR min index', min_index, 'min distance', min_distance, euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius))
-        return max_distance, self_df.iloc[max_index]['vector']
-        
-    def to_dict(self):
-        return {
-            "vector": [float(v) for v in self.vector],
-            "radius": float(self.radius),
-            "distance_type": self.distance_type
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], None)
-    
-    def mutate(self, mutation_rate, change, max):
-        indexes = list(range(len(self.vector)))
-        mutation_indexes = random.sample(indexes, int(len(self.vector) * mutation_rate))
-
-        for i in mutation_indexes:
-            if random.randint(0,1) == 0 and self.vector[i] < max[i]:
-                self.vector[i] += random.uniform(0, change[i])
-            elif self.vector[i] > -max[i]:
-                self.vector[i] -= random.uniform(0, change[i])
-        #print('Mutation:', previous, self.vector)    
-    
-    def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
-        direction = (self.vector - nearest_vector)    
-        # Normalize the direction vector (optional, for consistent step size)
-        #direction_normalized = direction / np.linalg.norm(direction)
-        # Move in the opposite direction of b and c
-        new_pos = self.vector + step * direction
-        exceeding_max = new_pos > feature_max 
-        exceeding_max_negative = new_pos < feature_low
-        # only set new vector pos if none of the feature values exceed max
-        if not (np.any(exceeding_max) or np.any(exceeding_max_negative)):
-            self.vector = new_pos
-
-    def compute_fitness(self, detector_set):
-        area = np.pi * self.radius**2
-        overlap = 0
-        if detector_set is not None:
-            for detector in detector_set.detectors:
-                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius)
-        self.fitness = area - overlap
-
-class DetectorSet:
-    def __init__(self, detectors):
-        self.detectors = detectors
-        '''self.grid = {}
-        for detector in detectors:
-            self.add_detector_to_grid(detector)'''
-
-    '''def add_detector_to_grid(self, detector):
-        grid_key = (int(detector.vector[0]), int(detector.vector[1]))  # discretize coordinates
-        if grid_key not in self.grid:
-            self.grid[grid_key] = []
-        self.grid[grid_key].append(detector)  '''      
-
-    '''def append_detector(self, detector):
-        self.detectors.append(detector)
-        self.add_detector_to_grid(detector)
-        for grid_key, detectors in self.grid.items():
-            print('Grid key:', grid_key, 'Detectors:', len(detectors))'''
-
-    '''def negative_space_not_covered(self):
-        for grid_key, detectors in self.grid.items():
-            print('Grid key:', grid_key, 'Detectors:', len(detectors))
-            area = 0
-            overlap = 0
-            for detector_a in detectors:
-                area += np.pi * detector_a.radius**2
-                for detector_b in detectors:
-                    if detector_a != detector_b:                        
-                        overlap = circle_overlap_area(detector_a.vector, detector_a.radius, detector_b.vector, detector_b.radius)
-            print('Grid key:', grid_key, 'Area:', area, 'Overlap:', overlap, area - overlap)'''
-
-    def to_dict(self):
-        return {"detectors": [d.to_dict() for d in self.detectors]}
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls([Detector.from_dict(d) for d in data['detectors']])
-    
-    def save_to_file(self, filename):
-        with open(f'model/detector/{filename}', 'w') as f:            
-            json.dump(self.to_dict(), f, indent=2)
-
-    @classmethod
-    def load_from_file(cls, filename):
-        with open(f'model/detector/{filename}', 'r') as f:
-            data = json.load(f)
-        return cls.from_dict(data)
-    
 class NegativeSelectionGeneticAlgorithm():
     def __init__(self, dim, pop_size, mutation_rate, self_region_rate, true_df, detector_set, distance_type='euclidean'):
         self.dim = dim
@@ -236,8 +44,16 @@ class NegativeSelectionGeneticAlgorithm():
         # total space
         #TODO: check this code
         self.total_space = np.prod(self.feature_max - self.feature_low)
-        #TODO: calculate the negative space based on total space minus self and their self regions
-    
+        tmp_positive_space = len(true_df) * np.pi * self.self_region**2
+        tmp_self_overlap = 0
+        for i, row_1st in enumerate(self.true_df.itertuples(index=False, name=None)):
+            for j, row_2nd in enumerate(self.true_df.itertuples(index=False, name=None)):
+                if i != j:
+                    tmp_self_overlap += circle_overlap_area(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
+        self.total_positive_space = tmp_positive_space - tmp_self_overlap
+        self.total_negative_space = self.total_space - self.total_positive_space   
+        print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 
+        
     def initiate_population(self):
         self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type) for _ in range(self.pop_size)] 
 
@@ -401,81 +217,77 @@ def test_distance(true_df, fake_df):
         distances.append(euclidean_distance(tv, fk, 0, 0))
     return np.mean(distances), np.std(distances)
 
+
+# python .\ga_nsa.py --dim=2 --dataset=dataset\ISOT\True_Fake_bert_umap_2dim_600_1000.h5 --detectorset=model\detector\detectors_bert_2dim_600_1000.h5 --amount=1
 def main():
-    a = np.array([1,3,3,1,1,1,1,1])
-    b = np.array([1,2,3,1,1,1,1,1])
-    d = np.array([1,1,1,1,1,1,1,1])
-    print(euclidean_distance(a, d, 0, 0), euclidean_distance(b, d, 0, 0))
+    parser = argparse.ArgumentParser(description='Negative Selection Genetic Algorithm for Fake News Detection')
+    parser.add_argument('--dim', type=int, default=5, help='Dimensionality of the feature vectors')
+    parser.add_argument('--dataset', type=str, required=True, help='Path to the dataset file')
+    parser.add_argument('--detectorset', type=str, required=True, help='Path to the detectorset file')
+    parser.add_argument('--amount', type=int, required=True, help='Amount of detectors to evolve')
+    args = parser.parse_args()
 
-    dim = 10
-    vec_factory = SpacyVectorFactory() # BERTVectorFactory() # SpacyVectorFactory() #BERTVectorFactory()
-    true_df = vec_factory.load_vectorized_dataframe('dataset/ISOT/True_glove.h5')
-    pca = PCA(n_components=dim)
-    vectors_df = pd.DataFrame(true_df['vector'].tolist())
-    reduced_vectors = pca.fit_transform(vectors_df)
-    true_df['vector'] = [np.array(vec) for vec in reduced_vectors]
-    print('PCA reduced', len(true_df.iloc[0]['vector']))
-    true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
-    true_validation_df, true_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
+    #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
+    true_training_df = pd.read_hdf(args.dataset, key='true_training')
+    true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
+    true_test_df = pd.read_hdf(args.dataset, key='true_test')
+
+    fake_training_df = pd.read_hdf(args.dataset, key='fake_training')
+    fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
+    fake_test_df = pd.read_hdf(args.dataset, key='fake_test')
+
+    if os.path.exists(args.detectorset):
+        print(f"Detectors already exists. Expanding mature detector set > {args.detectorset}")
+        dset = DetectorSet.load_from_file(args.detectorset) 
+    else:
+        print(f"Detectors do not exist. Building mature detector set from scratch > {args.detectorset}")
+        dset = DetectorSet([])
     
-    fake_df = vec_factory.load_vectorized_dataframe('dataset/ISOT/Fake_glove.h5')
-    vectors_df = pd.DataFrame(fake_df['vector'].tolist())
-    reduced_vectors = pca.transform(vectors_df)
-    fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
-    fake_training_df, tmp_df = train_test_split(fake_df, test_size=0.4, random_state=42)
-    fake_validation_df, fake_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
+    #TODO: make population size hyperparameter (args.pop_size)
+    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 50, 1, 1, true_training_df, dset, 'euclidean')
 
-    print(test_distance(true_training_df, fake_training_df))
-
-    '''d = [Detector.create_detector(0, 2, 300, true_training_df.sample(3), 0, None) for _ in range(5)]
-    dset = DetectorSet([])  #DetectorSet([]) #DetectorSet.load_from_file('detectors_10.json')
-    print(fast_cosine_distance_with_radius(d[0].vector, true_training_df.iloc[1].vector, 0.01, 0))
-    d[0].radius = Detector.compute_maximum_radius(true_training_df.sample(500), 0.01, dset, d[0].vector, 0)
-    print('radius', d[0].radius)
-    nsga = NegativeSelectionGeneticAlgorithm(0, 2, 300, 20, 0.2, true_training_df, dset) 
-    new_d = nsga.evolve_detector(20)
-    print('new_d', new_d.radius)
-    dset.detectors.append(new_d)
-    new_d = nsga.evolve_detector(20)
-    print('new d 2', new_d.radius)'''
-
-    dset = DetectorSet([])  #DetectorSet([]) #DetectorSet.load_from_file('detectors_10.json')
-    nsga = NegativeSelectionGeneticAlgorithm(3, 50, 0.2, true_training_df, dset, distance_type='cosine') 
-    detector_size = 5
-    for i in range(detector_size):
-        detector = nsga.evolve_detector(1, pop_check_ratio=0.1, mutation_change_rate=0.01)
+    for i in range(args.amount):
+        detector = nsga.evolve_detector(2, pop_check_ratio=1, mutation_change_rate=0.0001) 
         if detector.fitness > 0:
             dset.detectors.append(detector)
-        print('set length', len(dset.detectors))
-        dset.save_to_file('detectors.json')
-        print(len(dset.detectors))
-        # Evaluate
-        '''time0 = time.perf_counter()
-        true_detected, true_total = nsga.detect(true_validation_df, dset, 9999)
-        fake_detected, fake_total = nsga.detect(fake_validation_df, dset, 9999)
-        print(time.perf_counter() - time0)
-        print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
-        print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)'''
-    
-    dset = DetectorSet.load_from_file('detectors.json')
-    print('set length loaded', len(dset.detectors))
+        print('Detectors:', len(dset.detectors))
+        time0 = time.perf_counter()
+        dset.save_to_file(args.detectorset)
+        '''if len(dset.detectors) % 1 == 0:
+            print('Detectors:', len(dset.detectors))
+            time0 = time.perf_counter()
+            true_detected, true_total = nsga.detect(true_df, dset, 9999)
+            fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
+            print(time.perf_counter() - time0)
+            print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
+            print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
+            if dim == 2:
+                visualize_2d(true_df, fake_df, dset, nsga.self_region)
+            elif dim == 3:
+                visualize_3d(true_df, fake_df, dset, nsga.self_region)'''
+
+    dset = DetectorSet.load_from_file(args.detectorset)
+    print('Detectors:', len(dset.detectors))
+    #for detector in dset.detectors:
+    #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
-    true_detected, true_total = nsga.detect(true_validation_df, dset, 100)
-    fake_detected, fake_total = nsga.detect(fake_validation_df, dset, 100)
+    true_detected, true_total = nsga.detect(pd.concat([true_validation_df, true_test_df]), dset, 9999)
+    fake_detected, fake_total = nsga.detect(pd.concat([fake_validation_df, fake_test_df]), dset, 9999)
+    #true_detected, true_total = nsga.detect(true_df, dset, 9999)
+    #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     print(time.perf_counter() - time0)
     print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
     print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
 
-    '''
-    d1 = Detector([0,1,2,6], radius=41)
-    d2 = Detector([0,1,3,9], radius=44)
-    dset = DetectorSet([d1, d2])
-    dset.save_to_file('test_detectors.json')
-    dset = DetectorSet.load_from_file('test_detectors.json')
-    for d in [d1,d2]:
-        print(d.vector)
-    
-    '''
+    # Visualize true, fake and detectors
+    #detector_positions = np.array([detector.vector for detector in dset.detectors])
+    #true_cluster = np.array(true_validation_df['vector'].tolist())
+    #fake_cluster = np.array(fake_validation_df['vector'].tolist())
+    if args.dim == 2:
+        visualize_2d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga.self_region)
+
+    if args.dim == 3:
+        visualize_3d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga.self_region)    
 
 if __name__ == "__main__":
     main()
