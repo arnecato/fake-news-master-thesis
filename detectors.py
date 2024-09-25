@@ -14,11 +14,7 @@ class Detector():
     @classmethod
     def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type):
         best_vector = np.random.uniform(low=feature_low, high=feature_high)
-        exceeding_max = best_vector > feature_high
-        exceeding_max_negative = best_vector < feature_low
-        
-        if np.any(exceeding_max) or np.any(exceeding_max_negative):
-            print('exceeding max C',best_vector) 
+
         best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)   
         #print('Creating new detector', mean, stdev, best_vector)
         if detector_set is not None and len(detector_set.detectors) > 0:
@@ -36,9 +32,7 @@ class Detector():
         detector.radius = np.min([distance_to_detector, distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
         detector.compute_fitness(detector_set)    
-
-        exceeding_max = best_vector > feature_high
-        exceeding_max_negative = best_vector < feature_low      
+   
         return detector
     
     @classmethod
