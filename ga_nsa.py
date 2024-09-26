@@ -7,6 +7,16 @@ import os
 from detectors import Detector, DetectorSet
 from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, circle_overlap_area
 
+
+def compute_fitness(self, detector_set):
+    area = np.pi * self.radius**2
+    overlap = 0
+    if detector_set is not None:
+        for detector in detector_set.detectors:
+            if not np.array_equal(self.vector, detector.vector):          
+                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius)
+    self.f1 = area - overlap
+
 class NegativeSelectionGeneticAlgorithm():
     def __init__(self, dim, pop_size, mutation_rate, self_region_rate, true_df, detector_set, distance_type='euclidean'):
         self.dim = dim
@@ -55,10 +65,10 @@ class NegativeSelectionGeneticAlgorithm():
         print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 
         
     def initiate_population(self):
-        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type) for _ in range(self.pop_size)] 
+        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(self.pop_size)] 
 
     def find_distributions(self):
-        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, 0, None, self.distance_type) for _ in range(10)]
+        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, 0, None, self.distance_type, compute_fitness) for _ in range(10)]
         cosine_distances = []
         euclidean_distances = []
         for vector in random_detectors:
@@ -72,27 +82,10 @@ class NegativeSelectionGeneticAlgorithm():
         for detector in self.population:
             detector.compute_fitness(self.detector_set)
 
-    # Currently averaging half of the indexes and using the remaining indexes from the other parent
-    def recombine(self, parent1, parent2):
-        '''indexes = list(range(self.dim))
-        # draw which indexes should average
-        indexes_to_average_for_offspring1 = random.sample(indexes, int(self.dim / 2))
-        # remaining indexes from parent2
-        indexes_to_average_for_offspring2 = list(set(indexes) - set(indexes_to_average_for_offspring1))
-        offspring1 = np.zeros(self.dim, dtype=np.float32)
-        offspring2 = np.zeros(self.dim, dtype=np.float32)
-        for idx1, idx2 in zip(indexes_to_average_for_offspring1, indexes_to_average_for_offspring2):
-            offspring1[idx1] = (parent1.vector[idx1] + parent2.vector[idx1]) / 2
-            offspring1[idx2] = parent1.vector[idx2]
-            offspring2[idx2] = (parent1.vector[idx2] + parent2.vector[idx2]) / 2
-            offspring2[idx1] = parent2.vector[idx1]'''
-        
-        return [Detector((parent1.vector + parent2.vector) / 2, 0, self.distance_type, self.detector_set)] #, Detector(offspring2, 0, self.distance_type, self.detector_set)]
-
     def tournament_selection(self, tournament_size=2):
         # Randomly select tournament_size individuals and choose the best
         contenders = random.sample(self.population, tournament_size)
-        return max(contenders, key=lambda individual: individual.fitness)
+        return max(contenders, key=lambda individual: individual.f1)
 
     def recombine_tournament(self):
         offspring_list = []
@@ -104,7 +97,7 @@ class NegativeSelectionGeneticAlgorithm():
             parent2 = self.tournament_selection()
             #print(parent1.vector, parent2.vector)
             # Recombine the two parents to create offspring
-            offsprings = self.recombine(parent1, parent2)
+            offsprings = parent1.recombine(parent2, compute_fitness)
             
             # Add offsprings to the offspring list
             offspring_list.extend(offsprings)
@@ -115,10 +108,8 @@ class NegativeSelectionGeneticAlgorithm():
 
         return offspring_list
 
-    def evolve_detector(self, stagnation_patience=10, pop_check_ratio=0.1, mutation_change_rate=0.005):
-        # TODO: fix issue with detector being stuck(?) and concluding before reaching max radius by moving slightly
+    def evolve_detector(self, stagnation_patience=10, pop_check_ratio=0.1):
         self.initiate_population()
-    
         best = 0
         stagnant = 0
         #mutation_change = mutation_change_rate * (self.feature_mean + self.feature_stdev * 3)
@@ -127,17 +118,15 @@ class NegativeSelectionGeneticAlgorithm():
         generations = 0
         while stagnant < stagnation_patience:
             # sort based on fitness
-            self.population = sorted(self.population, key=lambda detector: detector.fitness, reverse=True)
+            self.population = sorted(self.population, key=lambda detector: detector.f1, reverse=True)
             # recombine the best
             offsprings = self.recombine_tournament()
             # mutate
             for offspring in offsprings:
                 # mutate (or move away from nearest)
                 step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
-                #print('Step:', step)
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
                 distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
-                
                 if distance_to_self < distance_to_detector:
                     nearest_vector = nearest_self
                 else:
@@ -146,32 +135,28 @@ class NegativeSelectionGeneticAlgorithm():
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
                 distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
                 offspring.radius = np.min([distance_to_detector, distance_to_self])
-                #offspring.mutate(self.mutation_rate, mutation_change, mutation_max)
-                #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                #distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
                 offspring.compute_fitness(self.detector_set)
-            # bring mutated offspring into population
 
             self.population.extend(offsprings)
                    
             # add random detectors
-            self.population.extend([Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df.sample(int(pop_check_ratio * len(self.true_df))), self.self_region, self.detector_set, self.distance_type) for _ in range(int(0.2 * self.pop_size))])
+            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df.sample(int(pop_check_ratio * len(self.true_df))), self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(int(0.2 * self.pop_size))]
+            for rnd_detector in rnd_detectors:
+                rnd_detector.compute_fitness(self.detector_set)
+            self.population.extend(rnd_detectors)
             #self.compute_population_fitness()
             # sort full population
-            self.population = sorted(self.population, key=lambda detector: detector.fitness, reverse=True)           
+            self.population = sorted(self.population, key=lambda detector: detector.f1, reverse=True)           
         
             # select only the best to survive to the next generation
             self.population = self.population[:self.pop_size]                   
-            
-            #for i in range(len(self.population)):
-            #    print(self.population[i].fitness, self.population[i].vector)
 
             # update stagnation (to decide on convergence)
             detector = self.population[0]
             if True: #generations % 10 == 0:
-                print(detector.fitness, np.max(detector.vector), np.min(detector.vector))
-            if abs(detector.fitness - best) > 0.01:
-                best = detector.fitness
+                print(detector.f1, np.max(detector.vector), np.min(detector.vector))
+            if abs(detector.f1 - best) > 0.01:
+                best = detector.f1
                 stagnant = 0
             else:
                 stagnant += 1
@@ -238,7 +223,7 @@ def main():
 
     if os.path.exists(args.detectorset):
         print(f"Detectors already exists. Expanding mature detector set > {args.detectorset}")
-        dset = DetectorSet.load_from_file(args.detectorset) 
+        dset = DetectorSet.load_from_file(args.detectorset, compute_fitness) 
     else:
         print(f"Detectors do not exist. Building mature detector set from scratch > {args.detectorset}")
         dset = DetectorSet([])
@@ -247,8 +232,8 @@ def main():
     nsga = NegativeSelectionGeneticAlgorithm(args.dim, 50, 1, 1, true_training_df, dset, 'euclidean')
 
     for i in range(args.amount):
-        detector = nsga.evolve_detector(2, pop_check_ratio=1, mutation_change_rate=0.0001) 
-        if detector.fitness > 0:
+        detector = nsga.evolve_detector(2, pop_check_ratio=1) 
+        if detector.f1 > 0:
             dset.detectors.append(detector)
         print('Detectors:', len(dset.detectors))
         time0 = time.perf_counter()
@@ -266,7 +251,7 @@ def main():
             elif dim == 3:
                 visualize_3d(true_df, fake_df, dset, nsga.self_region)'''
 
-    dset = DetectorSet.load_from_file(args.detectorset)
+    dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
     print('Detectors:', len(dset.detectors))
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1

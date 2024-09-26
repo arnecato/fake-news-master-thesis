@@ -1,18 +1,22 @@
 import numpy as np
 import random
 import json
-from util import euclidean_distance, fast_cosine_distance_with_radius, circle_overlap_area
+from util import euclidean_distance, fast_cosine_distance_with_radius
 
 class Detector():
-    def __init__(self, vector, radius, distance_type, detector_set):
+    def __init__(self, vector, radius, distance_type, fitness_function):
         self.vector = vector
         self.radius = radius
-        self.fitness = radius
-        self.distance_type = distance_type
-        self.compute_fitness(detector_set)
+        self.f1 = radius
+        self.distance_type = distance_type    
+        self.fitness_function = fitness_function
+        self.distance = 0 # used for M.O crowding distance
+
+    def compute_fitness(self, *args, **kwargs):
+        return self.fitness_function(self, *args, **kwargs)
 
     @classmethod
-    def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type):
+    def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type, fitness_function):
         best_vector = np.random.uniform(low=feature_low, high=feature_high)
 
         best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)   
@@ -25,20 +29,15 @@ class Detector():
                     best_distance = distance_to_detector
                     best_vector = vector   
                     #print('new vector', best_distance, vector)
-        detector = Detector(best_vector, 0, distance_type, detector_set)
+        detector = Detector(best_vector, 0, distance_type, fitness_function)
         distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)
         distance_to_self, nearest_self = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type)
         
         detector.radius = np.min([distance_to_detector, distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
-        detector.compute_fitness(detector_set)    
+        #detector.compute_fitness(detector_set)    
    
         return detector
-    
-    @classmethod
-    #def compute_maximum_radius_detector_and_self(cls, self_df, self_region_radius, detector_set, vector, distance_type):
-    #    #print('returning:', np.min([Detector.compute_maximum_radius(self_df, self_region_radius, vector, distance_type), Detector.compute_maximum_radius_to_detector_set(detector_set, vector, distance_type)]))
-    #    return np.min([Detector.compute_maximum_radius(self_df, self_region_radius, vector, distance_type), Detector.compute_maximum_radius_to_detector_set(detector_set, vector, distance_type)])
     
     @classmethod
     def compute_closest_detector(cls, detector_set, vector, distance_type):
@@ -62,7 +61,6 @@ class Detector():
         else:
             return 999999.0, None
         
-
     @classmethod
     def compute_closest_self(cls, self_df, self_region_radius, vector, distance_type):
         distances = []
@@ -101,10 +99,10 @@ class Detector():
         }
 
     @classmethod
-    def from_dict(cls, data):
-        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], None)
+    def from_dict(cls, data, fitness_function):
+        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function)
     
-    def mutate(self, mutation_rate, change, max):
+    '''def mutate(self, mutation_rate, change, max):
         indexes = list(range(len(self.vector)))
         mutation_indexes = random.sample(indexes, int(len(self.vector) * mutation_rate))
 
@@ -112,7 +110,7 @@ class Detector():
             if random.randint(0,1) == 0 and self.vector[i] < max[i]:
                 self.vector[i] += random.uniform(0, change[i])
             elif self.vector[i] > -max[i]:
-                self.vector[i] -= random.uniform(0, change[i])
+                self.vector[i] -= random.uniform(0, change[i])'''
         #print('Mutation:', previous, self.vector)    
     
     def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
@@ -127,14 +125,16 @@ class Detector():
         if not (np.any(exceeding_max) or np.any(exceeding_max_negative)):
             self.vector = new_pos
 
-    def compute_fitness(self, detector_set):
-        area = np.pi * self.radius**2
-        overlap = 0
-        if detector_set is not None:
-            for detector in detector_set.detectors:
-                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius)
-        self.fitness = area - overlap
+    # Currently averaging the position of the two parents
+    def recombine(self, other_parent, fitness_function):        
+        return [Detector((self.vector + other_parent.vector) / 2, 0, self.distance_type, fitness_function)] #, Detector(offspring2, 0, self.distance_type, self.detector_set)]
 
+    def dominated_by(self, comp_individual):
+        ''' checks if this individual is dominated by the comp_individual '''
+        if (comp_individual.f1 > self.f1 and comp_individual.f2 <= self.f2) or (comp_individual.f1 >= self.f1 and comp_individual.f2 < self.f2):
+            return True
+        else:
+            return False
 class DetectorSet:
     def __init__(self, detectors):
         self.detectors = detectors
@@ -143,16 +143,16 @@ class DetectorSet:
         return {"detectors": [d.to_dict() for d in self.detectors]}
 
     @classmethod
-    def from_dict(cls, data):
-        return cls([Detector.from_dict(d) for d in data['detectors']])
+    def from_dict(cls, data, fitness_function):
+        return cls([Detector.from_dict(d, fitness_function) for d in data['detectors']])
     
     def save_to_file(self, filename):
         with open(f'{filename}', 'w') as f:            
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load_from_file(cls, filename):
+    def load_from_file(cls, filename, fitness_function):
         with open(f'{filename}', 'r') as f:
             data = json.load(f)
-        return cls.from_dict(data)
+        return cls.from_dict(data, fitness_function)
     
