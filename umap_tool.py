@@ -9,7 +9,7 @@ import h5py
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
-def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000):
+def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, min_dist=0.1):
     time0 = time.perf_counter()
     true_df = pd.read_hdf(filepath_true, key='df') 
     # center vectors
@@ -20,10 +20,11 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     if sample_size == -1:
         sample_size = len(true_df)
     true_df = true_df.sample(sample_size, random_state=42)
-    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1) 
+    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist) 
     true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
-    print('true_training_df', true_training_df.shape)
+
     # reducing dimensions based on only true training data (assumption we have no access to other data)
+    print('True training length:', len(true_training_df))
     dimension_reducer.fit(np.vstack(true_training_df['vector'].values))
     reduced_true_vectors = dimension_reducer.transform(np.vstack(true_df['vector'].values))
     true_df['vector'] =  [np.array(vec) for vec in reduced_true_vectors]
@@ -107,10 +108,11 @@ def main():
     umap_parser.add_argument('--filepath_true', type=str, required=True, help='Path to the input HDF5 file for true news')
     umap_parser.add_argument('--filepath_fake', type=str, required=True, help='Path to the input HDF5 file for fake news')
     umap_parser.add_argument('--dim', type=int, required=True, help='Number of dimensions for UMAP')
-    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert'], help='Type of word embedding')
+    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert', 'word2vec'], help='Type of word embedding')
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
-    
+    umap_parser.add_argument('--min_dist', type=float, default=0.1, help='Minimum distance for UMAP')
+
     plot_parser = subparsers.add_parser('plot', help='Plot data distribution')
     plot_parser.add_argument('--filepath', type=str, required=True, help='Path to the input HDF5 file for plotting')
     plot_parser.add_argument('--true_keys', type=str, default='true_training,true_validation,true_test', help='Comma-separated list of keys for true data')
@@ -120,7 +122,7 @@ def main():
 
     # Execute based on the chosen subcommand
     if args.command == 'umap':
-        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size)
+        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, min_dist=args.min_dist)
     elif args.command == 'plot':
         plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','))
     else:

@@ -19,16 +19,16 @@ def compute_fitness(self, detector_set):
     if detector_set is not None:
         for detector in detector_set.detectors:
             if not np.array_equal(self.vector, detector.vector):          
-                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius)
+                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
     self.f1 = area - overlap
     self.f2 = overlap
 
 class NSGAII_Negative_Selection():
 
-    def __init__(self, dim, pop_size, mutation_rate, self_region_rate, true_df, detector_set, distance_type='euclidean'):
+    def __init__(self, dim, pop_size, self_region_rate, true_df, detector_set, distance_type='euclidean'):
         self.dim = dim
         self.pop_size = pop_size
-        self.mutation_rate = mutation_rate
+        #self.mutation_rate = mutation_rate
         self.true_df = true_df
         self.detector_set = detector_set
         self.distance_type = distance_type
@@ -339,6 +339,7 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, help='Path to the dataset file')
     parser.add_argument('--detectorset', type=str, required=True, help='Path to the detectorset file')
     parser.add_argument('--amount', type=int, required=True, help='Amount of detectors to evolve')
+    parser.add_argument('--self_region_rate', type=float, default=1.0, help='Rate to adjust the self region size')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -358,7 +359,7 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, 1, 1, true_training_df, dset, 'euclidean')
+    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, args.self_region_rate, true_training_df, dset, 'euclidean')
 
     for i in range(args.amount):
         pareto_fronts = nsga_nsa.evolve_detector(2, pop_check_ratio=1) 
