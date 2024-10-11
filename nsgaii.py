@@ -332,7 +332,7 @@ class ParetoFront():
         # sort based on crowding distance
         self.individuals_sorted_by_distance = sorted(self.individuals, key=lambda individual: -individual.distance)            
 
-# python nsgaii --dim=2 --dataset=dataset\ISOT\True_Fake_bert_umap_2dim_600_1000.h5 --detectorset=model\detector\detectors_bert_2dim_600_1000.h5 --amount=1
+# python nsgaii.py --dim=2 --dataset=dataset\ISOT\True_Fake_bert_umap_2dim_600_1000.h5 --detectorset=model\detector\detectors_bert_2dim_600_1000.h5 --amount=1
 def main():
     parser = argparse.ArgumentParser(description='Multi-Objective Negative Selection Algorithm for Fake News Detection')
     parser.add_argument('--dim', type=int, default=5, help='Dimensionality of the feature vectors')
@@ -397,8 +397,8 @@ def main():
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
-    true_detected, true_total = nsga_nsa.detect(pd.concat([true_validation_df, true_test_df]), dset, 9999)
-    fake_detected, fake_total = nsga_nsa.detect(pd.concat([fake_validation_df, fake_test_df]), dset, 9999)
+    true_detected, true_total = nsga_nsa.detect(pd.concat([true_validation_df, true_test_df]), dset, 99999)
+    fake_detected, fake_total = nsga_nsa.detect(pd.concat([fake_validation_df, fake_test_df]), dset, 99999)
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     print(time.perf_counter() - time0)

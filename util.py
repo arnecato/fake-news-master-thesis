@@ -40,7 +40,7 @@ def create_sphere(center, radius, resolution=20):
     
     return x, y, z
 
-def visualize_3d(true_df, fake_df, detector_set):
+def visualize_3d(true_df, fake_df, detector_set, self_region):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
@@ -85,6 +85,17 @@ def visualize_3d(true_df, fake_df, detector_set):
             color='green',
             alphahull=0,
             name='Detector Sphere'
+        ))
+    for self_sample in true_cluster:
+        x, y, z = create_sphere(self_sample, self_region)
+        spheres.append(go.Mesh3d(
+            x=x.flatten(),
+            y=y.flatten(),
+            z=z.flatten(),
+            opacity=0.3,  # Transparency
+            color='blue',
+            alphahull=0,
+            name='Self Sphere'
         ))
 
     # Create the figure and add the scatter plots and spheres
@@ -164,3 +175,192 @@ def recall(tp, fn):
     if tp + fn == 0:
         return 0
     return tp / (tp + fn)
+
+
+# M.O PLOTTING **********
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import animation
+
+def plot_schaffer(A, pareto_fronts):
+    ''' Minimize f1(x) = x**2. Minimize f2(x) = (x - 2)**2 '''
+
+    X = np.linspace(-A, A, 20*A)
+    
+    f1 = X**2
+    f2 = (X - 2)**2
+
+    # Creating subplots
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    # First subplot
+    axs[0].plot(X, f1, label='$f1 = X^2$')
+    axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
+    axs[0].set_title('Plot of $f_1$ and $f_2$')
+    axs[0].set_xlabel('$x$')
+    axs[0].set_ylabel('$f_1, f_2$', rotation=0, labelpad=20)
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # Second subplot
+    axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
+    axs[1].set_title('Objective space of $f_1$ and $f_2$')
+    axs[1].set_xlabel('$f_2$')
+    axs[1].set_ylabel('$f_1$', color='g', rotation=0, labelpad=20)
+    axs[1].grid(True)
+
+    # plot paretofronts
+    max_x = -np.inf
+    min_x = np.inf
+    max_f1 = -np.inf
+    max_f2 = -np.inf
+    if pareto_fronts != None:
+        for i, front in enumerate(pareto_fronts):
+            f1 = []
+            f2 = []
+            cur_x = []
+            for ind in front.individuals_sorted_by_distance:
+                f1.append(ind.f1)
+                f2.append(ind.f2)
+                cur_x.append(ind.x)
+            axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((f1, f2)), label=f"{i+1}")
+            axs[1].scatter(f2, f1, label=f'{i+1}')
+            if np.max(cur_x) > max_x:
+                max_x = np.max(cur_x)
+            if np.min(cur_x) < min_x:
+                min_x = np.min(cur_x)
+            if np.max(f1) > max_f1:
+                max_f1 = np.max(f1)
+            if np.max(f2) > max_f2:
+                max_f2 = np.max(f2)
+    axs[1].legend(loc='upper right')
+    
+    # dynamic area to show
+    axs[1].set_xlim(-1, max_f2)
+    axs[1].set_ylim(-1, max_f1)
+    axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
+    axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
+    # Displaying the plots
+    plt.tight_layout()
+    plt.show()
+
+
+
+#plot_schaffer(None)
+
+def animate_nsga_2_run(pareto_fronts_log, A=5):
+    #animation_obj = animation.FuncAnimation(fig, animate, n_steps, fargs=(x_points, y_points), interval=1000) 
+
+    def animate_fronts(i, pareto_fronts_log, f1, f2, X):
+        axs[0].clear()
+        axs[1].clear()
+        axs[0].plot(X, f1, label='$f1 = X^2$')
+        axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
+        axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
+
+        # plot paretofronts
+        max_x = -np.inf
+        min_x = np.inf
+        max_f1 = -np.inf
+        max_f2 = -np.inf
+        if pareto_fronts_log[i] != None:
+            for j, front in enumerate(pareto_fronts_log[i]):
+                cur_f1 = []
+                cur_f2 = []
+                cur_x = []
+                for ind in front.individuals_sorted_by_distance:
+                    cur_f1.append(ind.f1)
+                    cur_f2.append(ind.f2)
+                    cur_x.append(ind.x)
+
+                axs[1].scatter(cur_f2, cur_f1, label=f'{j+1}')
+                axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((cur_f1, cur_f2)), label=f"{j+1}")
+
+                if np.max(cur_x) > max_x:
+                    max_x = np.max(cur_x)
+                if np.min(cur_x) < min_x:
+                    min_x = np.min(cur_x)
+                if np.max(cur_f1) > max_f1:
+                    max_f1 = np.max(cur_f1)
+                if np.max(cur_f2) > max_f2:
+                    max_f2 = np.max(cur_f2)
+
+        axs[1].legend(loc='upper right')
+        axs[0].legend(loc='upper right')
+
+        # dynamic area to show
+        axs[1].set_xlim(-1, max_f2)
+        axs[1].set_ylim(-1, max_f1)
+        axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
+        axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
+
+        text_top = np.max([max_f1, max_f2])
+        axs[0].text(0, text_top + text_top/10, f"Generation {i+1} / {len(pareto_fronts_log)}")
+
+    X = np.linspace(-A, A, 20*A)
+    
+    f1 = X**2
+    f2 = (X - 2)**2
+
+    # Creating subplots
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    # First subplot
+    axs[0].plot(X, f1, label='$f1 = X^2$')
+    axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
+    axs[0].set_title('Plot of $f_1$ and $f_2$')
+    axs[0].set_xlabel('$x$')
+    axs[0].set_ylabel('$f_1, f_2$', rotation=0, labelpad=20)
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # Second subplot
+    axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
+    axs[1].set_title('Objective space of $f_1$ and $f_2$')
+    axs[1].set_xlabel('$f_2$')
+    axs[1].set_ylabel('$f_1$', color='g', rotation=0, labelpad=20)
+    axs[1].grid(True)
+
+    # plot paretofronts
+    max_x = -np.inf
+    min_x = np.inf
+    max_f1 = -np.inf
+    max_f2 = -np.inf
+    if pareto_fronts_log[0] != None:
+        for i, front in enumerate(pareto_fronts_log[0]):
+            cur_f1 = []
+            cur_f2 = []
+            cur_x = []
+            for ind in front.individuals_sorted_by_distance:
+                cur_f1.append(ind.f1)
+                cur_f2.append(ind.f2)
+                cur_x.append(ind.x)
+
+            axs[1].scatter(cur_f2, cur_f1, label=f'{i+1}')
+            axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((cur_f1, cur_f2)), label=f"{i+1}")
+
+            if np.max(cur_x) > max_x:
+                max_x = np.max(cur_x)
+            if np.min(cur_x) < min_x:
+                min_x = np.min(cur_x)
+            if np.max(cur_f1) > max_f1:
+                max_f1 = np.max(cur_f1)
+            if np.max(cur_f2) > max_f2:
+                max_f2 = np.max(cur_f2)
+            
+    axs[1].legend(loc='upper right')
+    axs[0].legend(loc='upper right')
+    
+    # dynamic area to show
+    axs[1].set_xlim(-1, max_f2)
+    axs[1].set_ylim(-1, max_f1)
+    axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
+    axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
+    
+    text_top = np.max([max_f1, max_f2])
+    axs[0].text(0, text_top + text_top/10, f"Generation {1} / {len(pareto_fronts_log)}")
+
+    animation_obj = animation.FuncAnimation(fig, animate_fronts, len(pareto_fronts_log), fargs=(pareto_fronts_log, f1, f2, X, ), interval=1500) 
+    #writervideo = animation.FFMpegWriter(fps=1) 
+    animation_obj.save("gifs/performance_animation.gif", dpi=300, writer=animation.PillowWriter(fps=1))
+    #animation_obj.save('perfromance_animation.mp4', writer=writervideo)
+    plt.close() 

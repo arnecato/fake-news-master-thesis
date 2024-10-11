@@ -32,7 +32,7 @@ dset = DetectorSet.load_from_file(f'detectors_test_{dim}dim_umap_{word_embedding
 nsga = NegativeSelectionGeneticAlgorithm(dim, 50, 1, 1, true_training_df, dset, 'euclidean')
 for i in range(0):
     detector = nsga.evolve_detector(2, pop_check_ratio=1, mutation_change_rate=0.0001) 
-    if detector.fitness > 0:
+    if detector.f1 > 0:
         dset.detectors.append(detector)
     print('Detectors:', len(dset.detectors))
     time0 = time.perf_counter()
