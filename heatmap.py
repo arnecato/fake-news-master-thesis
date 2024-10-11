@@ -128,19 +128,10 @@ def measure_average_distance(df_true, df_fake, feature_indices):
 def main():
     # Example usage
     # Load your two dataframes (df_A and df_B) with vector data from two sources
-    #df_A = pd.read_hdf('dataset/ISOT/TRUE_bert.h5', key='df') #.sample(1000)
-    #df_B = pd.read_hdf('dataset/ISOT/FAKE_bert.h5', key='df') #.sample(1000)
-    df_A = pd.read_csv('dataset/ISOT/True_Fake.csv') #.sample(1000)
-    #df_B = pd.read_csv('dataset/ISOT/Fake.csv') #.sample(1000)
+    df_A = pd.read_hdf('dataset/ISOT/TRUE_bert.h5', key='df').sample(1000)
+    df_B = pd.read_hdf('dataset/ISOT/FAKE_bert.h5', key='df').sample(1000)
     # Filter dataframes to include only those with feature index 0 values between -1 and 0
-    min_length_A = df_A['text'].str.len().min()
-    max_length_A = df_A['text'].str.len().max()
-    avg_length_A = df_A['text'].str.len().mean()
-    median_length_A = df_A['text'].str.len().median()
 
-    print(f"Median text length in df_A: {median_length_A}")
-    print(f"Average text length in df_A: {avg_length_A}")
-    print(f"Minimum length in df_A: {min_length_A}, Maximum length in df_A: {max_length_A}")
     for _ in range(100):
         feature1_index = np.random.randint(0, 768)
         feature2_index = np.random.randint(0, 768)
