@@ -270,6 +270,17 @@ Embedded Feature Selection
 Reducing dimensions
 Filtering true data. Splitting them around the cluster.
 
+
+17.10.24:
+Refactor / extend detectors and code to use VLC and embedded feature selection.
+- allow feature_index
+- load and store
+- initialize detectors
+- recombine using VLC
+- mutate using VLC
+- comparisons using VLC
+
+
 # Baseline single-objective NSA
 Similar to work done in (Ripon et al., n.d.) by Ripon et al.
 

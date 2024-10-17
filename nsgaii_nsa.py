@@ -8,7 +8,7 @@ import time
 import argparse
 
 '''
-NSGAII part based on Deb (2001)
+NSGAII part based on Deb et al. (2001)
 '''
 
 

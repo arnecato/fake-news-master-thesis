@@ -5,26 +5,27 @@ import time
 import argparse
 import os
 from detectors import Detector, DetectorSet
-from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, circle_overlap_area
+from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_overlap
 
 
 def compute_fitness(self, detector_set):
-    area = np.pi * self.radius**2
     overlap = 0
     if detector_set is not None:
         for detector in detector_set.detectors:
-            if not np.array_equal(self.vector, detector.vector):          
-                overlap += circle_overlap_area(self.vector, self.radius, detector.vector, detector.radius)
-    self.f1 = area - overlap
+            if not np.array_equal(self.vector, detector.vector):    
+                #print('overlap', self.vector, self.radius, detector.vector, detector.radius)      
+                overlap += calculate_overlap(self.vector, self.radius, detector.vector, detector.radius)
+    self.f1 = self.radius - overlap
 
 class NegativeSelectionGeneticAlgorithm():
-    def __init__(self, dim, pop_size, mutation_rate, self_region_rate, true_df, detector_set, distance_type='euclidean'):
+    def __init__(self, dim, pop_size, mutation_rate, self_region_rate, true_df, detector_set, distance_type, feature_selection):
         self.dim = dim
         self.pop_size = pop_size
         self.mutation_rate = mutation_rate
         self.true_df = true_df
         self.detector_set = detector_set
         self.distance_type = distance_type
+        self.feature_selection = feature_selection
         # find mean and stdev of feature values
         feature_values = [value for value in self.true_df['vector'].tolist()]
         #self.feature_mean = np.mean(true_df['vector'].tolist(), axis=0)
@@ -59,7 +60,7 @@ class NegativeSelectionGeneticAlgorithm():
         for i, row_1st in enumerate(self.true_df.itertuples(index=False, name=None)):
             for j, row_2nd in enumerate(self.true_df.itertuples(index=False, name=None)):
                 if i != j:
-                    tmp_self_overlap += circle_overlap_area(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
+                    tmp_self_overlap += calculate_overlap(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
         self.total_positive_space = tmp_positive_space - tmp_self_overlap
         self.total_negative_space = self.total_space - self.total_positive_space   
         print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 
@@ -125,16 +126,18 @@ class NegativeSelectionGeneticAlgorithm():
             for offspring in offsprings:
                 # mutate (or move away from nearest)
                 step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
-                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
-                if distance_to_self < distance_to_detector:
-                    nearest_vector = nearest_self
-                else:
-                    nearest_vector = nearest_detector
+                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type, offspring.feature_index)
+                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type, offspring.feature_index)
+                #TODO: completely changed the logic here. Re-check. 
+                #if distance_to_self < distance_to_detector:
+                #    nearest_vector = nearest_self
+                #else:
+                #    nearest_vector = nearest_detector
+                nearest_vector = nearest_self
                 offspring.move_away_from_nearest(nearest_vector, step, self.feature_low, self.feature_max)
-                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
-                offspring.radius = np.min([distance_to_detector, distance_to_self])
+                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type, offspring.feature_index)
+                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type, offspring.feature_index)
+                offspring.radius = distance_to_self #np.min([distance_to_detector, distance_to_self])
                 offspring.compute_fitness(self.detector_set)
 
             self.population.extend(offsprings)
@@ -146,6 +149,7 @@ class NegativeSelectionGeneticAlgorithm():
             self.population.extend(rnd_detectors)
             #self.compute_population_fitness()
             # sort full population
+            #print(self.population[0].vector, self.population[0].radius, self.population[0].f1)
             self.population = sorted(self.population, key=lambda detector: detector.f1, reverse=True)           
         
             # select only the best to survive to the next generation
@@ -165,9 +169,9 @@ class NegativeSelectionGeneticAlgorithm():
         # TODO: below needs to be added if pop_check_ratio < 1
         if pop_check_ratio < 1:
             old_r = self.population[0].radius
-            distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-            distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
-            self.population[0].radius = np.min([distance_to_detector, distance_to_self])
+            distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, self.population[0].vector, self.distance_type, self.population[0].feature_index)
+            distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, self.population[0].vector, self.distance_type, self.population[0].feature_index)
+            self.population[0].radius = distance_to_self #np.min([distance_to_detector, distance_to_self])
             print(self.population[0].vector)
             self.population[0].compute_fitness(self.detector_set)
             print('Changed radius:', old_r, self.population[0].radius)
@@ -210,6 +214,7 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, help='Path to the dataset file')
     parser.add_argument('--detectorset', type=str, required=True, help='Path to the detectorset file')
     parser.add_argument('--amount', type=int, required=True, help='Amount of detectors to evolve')
+    parser.add_argument('--feature_selection', type=int, default=0, help='Whether to use feature selection (0 for False, 1 or more indicates the number of features to select for a new detector)')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -229,7 +234,7 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 50, 1, 1, true_training_df, dset, 'euclidean')
+    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 50, 1, 1, true_training_df, dset, 'euclidean', args.feature_selection)
 
     for i in range(args.amount):
         detector = nsga.evolve_detector(2, pop_check_ratio=1) 

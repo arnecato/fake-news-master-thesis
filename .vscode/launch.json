@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--dim", "2", "--dataset", "dataset\\ISOT\\True_Fake_bert_umap_2dim_600_1000.h5", "--detectorset", "model\\detector\\detectors_bert_2dim_600_1000_mo.h5", "--amount", "1"
+                "--dim", "2", "--dataset", "dataset\\ISOT\\True_Fake_bert_umap_2dim_600_1000.h5", "--detectorset", "model\\detector\\detectors_bert_2dim_600_1000.h5", "--amount", "10"
             ]
         }
     ]
