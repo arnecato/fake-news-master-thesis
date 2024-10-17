@@ -23,7 +23,21 @@ class Detector():
             feature_index = random.sample(range(len(feature_low)), feature_selection) 
             feature_low = feature_low[feature_index]
             feature_high = feature_high[feature_index]
-        best_vector = np.random.uniform(low=feature_low, high=feature_high)
+        # randomly select a self sample to expand out from
+        self_sample_vector = self_df.sample(1).vector.values[0]
+        #print('self vector', self_sample_vector)
+        # randomly pick a feature index to expand out from and whether to go above or below the feature value
+        feature_idx = random.choice(range(len(self_sample_vector)))
+        #print(feature_idx, self_sample_vector)
+        if random.choice([True, False]):
+            feature_value = feature_high[feature_idx]
+            self_sample_vector[feature_idx] = feature_value + random.uniform(0, 0.1 * feature_value)
+        else:
+            feature_value = feature_low[feature_idx]
+            self_sample_vector[feature_idx] = feature_value - random.uniform(0, 0.1 * feature_value)
+        #best_vector = np.random.uniform(low=feature_low, high=feature_high)
+        best_vector = self_sample_vector
+        #print('best vector', best_vector)
         best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)   
         #print('Creating new detector', mean, stdev, best_vector)
         #TODO: why do this 10 times? Why not just create one random detector?
