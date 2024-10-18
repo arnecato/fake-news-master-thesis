@@ -33,8 +33,8 @@ class NegativeSelectionGeneticAlgorithm():
         self.feature_low = np.min(true_df['vector'].tolist(), axis=0)
         self.feature_max = np.max(true_df['vector'].tolist(), axis=0)
         self.range = self.feature_max - self.feature_low
-        self.feature_max = self.feature_max + self.range * 0.1
-        self.feature_low = self.feature_low - self.range * 0.1
+        self.feature_max = self.feature_max + self.range * 0.05
+        self.feature_low = self.feature_low - self.range * 0.05
         #self.feature_stdev = self.feature_stdev / 2 # TODO: find better way to limit the stdev. Stdev is used to bound the total space area (when initializing detectors)
         print('Feature values (low, max):', self.feature_low, self.feature_max)
         # find mean and stdev of distances between random detectors and self samples
@@ -50,7 +50,7 @@ class NegativeSelectionGeneticAlgorithm():
             #print(f'distance found {closest_distance}', row_1st[1], row_2nd[1])
             if distance != 0: # avoid adding distance to itself
                 self_distances.append(closest_distance)
-        self.self_region = np.mean(self_distances) * self_region_rate
+        self.self_region = np.mean(self_distances) * self_region_rate * 0.8
         print('Self region:', self.self_region)
         # total space
         #TODO: check this code
@@ -66,10 +66,10 @@ class NegativeSelectionGeneticAlgorithm():
         print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 
         
     def initiate_population(self):
-        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(self.pop_size)] 
+        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.feature_selection) for _ in range(self.pop_size)] 
 
     def find_distributions(self):
-        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, 0, None, self.distance_type, compute_fitness) for _ in range(10)]
+        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, 0, None, self.distance_type, compute_fitness, self.feature_selection) for _ in range(10)]
         cosine_distances = []
         euclidean_distances = []
         for vector in random_detectors:
@@ -143,7 +143,7 @@ class NegativeSelectionGeneticAlgorithm():
             self.population.extend(offsprings)
                    
             # add random detectors
-            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(int(0.2 * self.pop_size))]
+            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.feature_selection) for _ in range(int(0.2 * self.pop_size))]
             for rnd_detector in rnd_detectors:
                 rnd_detector.compute_fitness(self.detector_set)
             self.population.extend(rnd_detectors)
@@ -271,10 +271,10 @@ def main():
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
     true_plot_df = true_training_df # real_test_set_df
     fake_plot_df = fake_test_set_df
-    if args.dim == 2:
+    if args.dim == 2 and args.feature_selection == 0:
         visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
 
-    if args.dim == 3:
+    if args.dim == 3 and args.feature_selection == 0:
         visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
 
 if __name__ == "__main__":

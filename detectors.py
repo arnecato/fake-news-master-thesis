@@ -18,27 +18,34 @@ class Detector():
 
     @classmethod
     def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type, fitness_function, feature_selection=0):
-        feature_index = None
+        feature_index = list(range(len(self_df.iloc[0]['vector'])))
         if feature_selection > 0:
+            print('Feature selection:', feature_selection)
             feature_index = random.sample(range(len(feature_low)), feature_selection) 
             feature_low = feature_low[feature_index]
             feature_high = feature_high[feature_index]
         # randomly select a self sample to expand out from
         random_index = np.random.randint(0, len(self_df))
-        self_sample_vector = self_df.iloc[random_index]['vector']
+        self_sample_vector = self_df.iloc[random_index]['vector'][feature_index]
+        
         self_sample_vector = np.copy(self_sample_vector) 
         #print('self vector', self_sample_vector)
         # randomly pick a feature index to expand out from and whether to go above or below the feature value
         feature_idx = random.choice(range(len(self_sample_vector)))
         #print(feature_idx, self_sample_vector)
         if random.choice([True, False]):
-            feature_value = feature_high[feature_idx]
-            self_sample_vector[feature_idx] = feature_value + random.uniform(0, 0.1 * feature_value)
+            feature_value = self_sample_vector[feature_idx]
+            self_sample_vector[feature_idx] = feature_value + self_region + random.uniform(0, self_region)
         else:
-            feature_value = feature_low[feature_idx]
-            self_sample_vector[feature_idx] = feature_value - random.uniform(0, 0.1 * feature_value)
+            feature_value = self_sample_vector[feature_idx]
+            self_sample_vector[feature_idx] = feature_value - self_region - random.uniform(0, self_region)
         #best_vector = np.random.uniform(low=feature_low, high=feature_high)
         best_vector = self_sample_vector
+        exceeding_max = best_vector > feature_high + feature_high * 0.1
+        exceeding_max_negative = best_vector < feature_low - feature_low * 0.1
+        if np.any(exceeding_max) or np.any(exceeding_max_negative):
+            print('new detect pos is over!', best_vector, feature_high + feature_high * 0.1, feature_low - feature_low * 0.1)
+            best_vector = np.clip(best_vector, feature_low, feature_high)
         #print('best vector', best_vector)
         best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)   
         #print('Creating new detector', mean, stdev, best_vector)
@@ -171,6 +178,7 @@ class Detector():
             return True
         else:
             return False
+        
 class DetectorSet:
     def __init__(self, detectors):
         self.detectors = detectors
