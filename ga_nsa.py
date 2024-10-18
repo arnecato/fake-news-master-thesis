@@ -151,7 +151,8 @@ class NegativeSelectionGeneticAlgorithm():
             # sort full population
             #print(self.population[0].vector, self.population[0].radius, self.population[0].f1)
             self.population = sorted(self.population, key=lambda detector: detector.f1, reverse=True)           
-        
+            #for detector in self.population:
+            #    print(f"Vector: {detector.vector}, F1: {detector.f1}")
             # select only the best to survive to the next generation
             self.population = self.population[:self.pop_size]                   
 
@@ -227,7 +228,7 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 50, 1, 1, true_training_df, dset, 'euclidean', args.feature_selection)
+    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 10, 1, 1, true_training_df, dset, 'euclidean', args.feature_selection)
 
     for i in range(args.amount):
         detector = nsga.evolve_detector(2, pop_check_ratio=1) 
@@ -254,9 +255,10 @@ def main():
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
-    test_set_df = pd.concat([true_validation_df, true_test_df])
-    true_detected, true_total = nsga.detect(test_set_df, dset, 9999)
-    fake_detected, fake_total = nsga.detect(test_set_df, dset, 9999)
+    real_test_set_df = pd.concat([true_validation_df, true_test_df])
+    fake_test_set_df = pd.concat([fake_validation_df, fake_test_df])
+    true_detected, true_total = nsga.detect(real_test_set_df, dset, 9999)
+    fake_detected, fake_total = nsga.detect(fake_test_set_df, dset, 9999)
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     print(time.perf_counter() - time0)
@@ -267,8 +269,8 @@ def main():
     #detector_positions = np.array([detector.vector for detector in dset.detectors])
     #true_cluster = np.array(true_validation_df['vector'].tolist())
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
-    true_plot_df = true_training_df # pd.concat([true_validation_df, true_test_df])
-    fake_plot_df = pd.concat([fake_validation_df, fake_test_df])
+    true_plot_df = true_training_df # real_test_set_df
+    fake_plot_df = fake_test_set_df
     if args.dim == 2:
         visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
 

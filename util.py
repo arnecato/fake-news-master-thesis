@@ -145,15 +145,23 @@ def fast_cosine_distance_with_radius(a, b, a_radius, b_radius, feature_index):
     # Ensure the distance is non-negative
     return adjusted_distance
 
-def calculate_overlap(center1, radius1, center2, radius2):
+def calculate_overlap(subject_vector_center, radius1, object_vector_center, radius2):
     # Calculate the distance between the centers
-    distance = math.dist(center1, center2)
+    distance = math.dist(subject_vector_center, object_vector_center)
     
-    # If the circles do not overlap
+    # If no overlap, nothing needs to be reduced
     if distance >= radius1 + radius2:
         return 0.0
-    else:
-        return abs(distance - radius1 - radius2)
+    # complete coverage of subject by object
+    elif distance <= abs(radius2 - radius1):
+        return radius1 # subject is completely covered by object
+    # partial coverage of subject by object
+    elif distance < radius1 + radius2:
+        overlap_amount = (radius1 + radius2) - distance
+        reduction_amount = overlap_amount / len(subject_vector_center) # adjust for dimensionality
+        return reduction_amount
+    
+    print('ops', subject_vector_center, object_vector_center, radius1, radius2)
 
 # METRICS
 
