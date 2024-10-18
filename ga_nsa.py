@@ -143,7 +143,7 @@ class NegativeSelectionGeneticAlgorithm():
             self.population.extend(offsprings)
                    
             # add random detectors
-            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df.sample(int(pop_check_ratio * len(self.true_df))), self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(int(0.2 * self.pop_size))]
+            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(int(0.2 * self.pop_size))]
             for rnd_detector in rnd_detectors:
                 rnd_detector.compute_fitness(self.detector_set)
             self.population.extend(rnd_detectors)
@@ -169,13 +169,12 @@ class NegativeSelectionGeneticAlgorithm():
         # TODO: below needs to be added if pop_check_ratio < 1
         if pop_check_ratio < 1:
             old_r = self.population[0].radius
-            distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, self.population[0].vector, self.distance_type, self.population[0].feature_index)
+            #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, self.population[0].vector, self.distance_type, self.population[0].feature_index)
             distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, self.population[0].vector, self.distance_type, self.population[0].feature_index)
             self.population[0].radius = distance_to_self #np.min([distance_to_detector, distance_to_self])
             print(self.population[0].vector)
             self.population[0].compute_fitness(self.detector_set)
             print('Changed radius:', old_r, self.population[0].radius)
-
         return self.population[0]          
 
     def detect(self, df, detector_set, max_detectors):
@@ -199,12 +198,6 @@ class NegativeSelectionGeneticAlgorithm():
                     break
             total += 1          
         return detected, total
-    
-def test_distance(true_df, fake_df):
-    distances = []
-    for tv, fk in zip(true_df.sample(100)['vector'], fake_df.sample(100)['vector']):
-        distances.append(euclidean_distance(tv, fk, 0, 0))
-    return np.mean(distances), np.std(distances)
 
 
 # python .\ga_nsa.py --dim=2 --dataset=dataset\ISOT\True_Fake_bert_umap_2dim_600_1000.h5 --detectorset=model\detector\detectors_bert_2dim_600_1000.h5 --amount=1
@@ -261,8 +254,9 @@ def main():
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
-    true_detected, true_total = nsga.detect(pd.concat([true_validation_df, true_test_df]), dset, 9999)
-    fake_detected, fake_total = nsga.detect(pd.concat([fake_validation_df, fake_test_df]), dset, 9999)
+    test_set_df = pd.concat([true_validation_df, true_test_df])
+    true_detected, true_total = nsga.detect(test_set_df, dset, 9999)
+    fake_detected, fake_total = nsga.detect(test_set_df, dset, 9999)
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     print(time.perf_counter() - time0)
@@ -273,11 +267,13 @@ def main():
     #detector_positions = np.array([detector.vector for detector in dset.detectors])
     #true_cluster = np.array(true_validation_df['vector'].tolist())
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
+    true_plot_df = true_training_df # pd.concat([true_validation_df, true_test_df])
+    fake_plot_df = pd.concat([fake_validation_df, fake_test_df])
     if args.dim == 2:
-        visualize_2d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga.self_region)
+        visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
 
     if args.dim == 3:
-        visualize_3d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga.self_region)    
+        visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
 
 if __name__ == "__main__":
     main()

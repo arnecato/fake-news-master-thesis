@@ -24,7 +24,9 @@ class Detector():
             feature_low = feature_low[feature_index]
             feature_high = feature_high[feature_index]
         # randomly select a self sample to expand out from
-        self_sample_vector = self_df.sample(1).vector.values[0]
+        random_index = np.random.randint(0, len(self_df))
+        self_sample_vector = self_df.iloc[random_index]['vector']
+        self_sample_vector = np.copy(self_sample_vector) 
         #print('self vector', self_sample_vector)
         # randomly pick a feature index to expand out from and whether to go above or below the feature value
         feature_idx = random.choice(range(len(self_sample_vector)))
@@ -41,16 +43,16 @@ class Detector():
         best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)   
         #print('Creating new detector', mean, stdev, best_vector)
         #TODO: why do this 10 times? Why not just create one random detector?
-        if detector_set is not None and len(detector_set.detectors) > 0:
+        '''if detector_set is not None and len(detector_set.detectors) > 0:
             for _ in range(10):
                 vector = np.random.uniform(low=feature_low, high=feature_high)
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, vector, distance_type, feature_index)
                 if distance_to_detector > best_distance:
                     best_distance = distance_to_detector
                     best_vector = vector   
-                    #print('new vector', best_distance, vector)
+                    #print('new vector', best_distance, vector)'''
         detector = Detector(best_vector, 0, distance_type, fitness_function, feature_index)
-        distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)
+        #distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)
         distance_to_self, nearest_self = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type, feature_index)
         detector.radius = distance_to_self #TODO: completely changed the logic here. Need to re-check!
         #detector.radius = np.min([distance_to_detector, distance_to_self]) #TODO: completely changed the logic here. Need to re-check!
