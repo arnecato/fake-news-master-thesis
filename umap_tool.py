@@ -129,7 +129,7 @@ def main():
         parser.print_help()
 
 
-#  python.exe .\umap_explore.py umap --filepath_true="dataset/ISOT/True_bert.h5" --filepath_fake="dataset/ISOT/Fake_bert.h5" --word_embedding='bert' --dim=2 --neighbors=700 --sample_size=1000
+#  python.exe .\umap_tool.py umap --filepath_true="dataset/ISOT/True_bert.h5" --filepath_fake="dataset/ISOT/Fake_bert.h5" --word_embedding='bert' --dim=2 --neighbors=700 --sample_size=1000
 # python.exe .\umap_tool.py plot --filepath="dataset/ISOT/True_Fake_bert_umap_2dim_700_1000.h5"
 if __name__ == '__main__':
     main()

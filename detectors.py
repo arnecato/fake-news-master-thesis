@@ -1,10 +1,11 @@
 import numpy as np
 import random
 import json
-from util import euclidean_distance, fast_cosine_distance_with_radius
+from util import euclidean_distance, fast_cosine_distance_with_radius, get_shared_feature_vectors
 
 class Detector():
     def __init__(self, vector, radius, distance_type, fitness_function, feature_index=None):
+        #print('feature index', feature_index)
         self.vector = vector
         self.radius = radius
         self.f1 = radius
@@ -20,7 +21,7 @@ class Detector():
     def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type, fitness_function, feature_selection=0):
         feature_index = list(range(len(self_df.iloc[0]['vector'])))
         if feature_selection > 0:
-            print('Feature selection:', feature_selection)
+            #print('Feature selection:', feature_selection)
             feature_index = random.sample(range(len(feature_low)), feature_selection) 
             feature_low = feature_low[feature_index]
             feature_high = feature_high[feature_index]
@@ -30,16 +31,21 @@ class Detector():
         
         self_sample_vector = np.copy(self_sample_vector) 
         #print('self vector', self_sample_vector)
-        # randomly pick a feature index to expand out from and whether to go above or below the feature value
-        feature_idx = random.choice(range(len(self_sample_vector)))
-        #print(feature_idx, self_sample_vector)
+        
+        # half of the time, it should be a random vector drawn uniformly from the feature space
         if random.choice([True, False]):
-            feature_value = self_sample_vector[feature_idx]
-            self_sample_vector[feature_idx] = feature_value + self_region + random.uniform(0, self_region)
+            self_sample_vector = np.random.uniform(low=feature_low, high=feature_high)
+        # the other half of the time a self sample is selected randomly and a detector is initialized just outside of it
         else:
-            feature_value = self_sample_vector[feature_idx]
-            self_sample_vector[feature_idx] = feature_value - self_region - random.uniform(0, self_region)
-        #best_vector = np.random.uniform(low=feature_low, high=feature_high)
+            # randomly pick a feature index to expand out from and whether to go above or below the feature value
+            feature_idx = random.choice(range(len(self_sample_vector)))
+            #print(feature_idx, self_sample_vector)
+            if random.choice([True, False]):
+                feature_value = self_sample_vector[feature_idx]
+                self_sample_vector[feature_idx] = feature_value + self_region + random.uniform(0, self_region)
+            else:
+                feature_value = self_sample_vector[feature_idx]
+                self_sample_vector[feature_idx] = feature_value - self_region - random.uniform(0, self_region)
         best_vector = self_sample_vector
         exceeding_max = best_vector > feature_high + feature_high * 0.1
         exceeding_max_negative = best_vector < feature_low - feature_low * 0.1
@@ -47,7 +53,7 @@ class Detector():
             print('new detect pos is over!', best_vector, feature_high + feature_high * 0.1, feature_low - feature_low * 0.1)
             best_vector = np.clip(best_vector, feature_low, feature_high)
         #print('best vector', best_vector)
-        best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)   
+        #best_distance, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)   #TODO: remove this?
         #print('Creating new detector', mean, stdev, best_vector)
         #TODO: why do this 10 times? Why not just create one random detector?
         '''if detector_set is not None and len(detector_set.detectors) > 0:
@@ -74,20 +80,20 @@ class Detector():
         if detector_set is not None and len(detector_set.detectors) > 0:
             for detector in detector_set.detectors:
                 # make sure detectors share the same feature indices
-                if feature_index is not None:
-                    detector_vector = detector.vector[feature_index]
-                else:
-                    detector_vector = detector.vector
+                if feature_index is not None or detector.feature_index is not None:
+                    #print(detector.feature_index, feature_index)
+                    vector, detector_vector, shared_features = get_shared_feature_vectors(vector, feature_index, detector.vector, detector.feature_index)
+                #detector_vector = detector.vector
                 # only compare if they share 1 or more features
-                if len(detector_vector) > 0:
+                if vector is not None and detector_vector is not None and len(detector_vector) > 0:
                     if detector.distance_type == distance_type == 'cosine':
                         #distance = np.linalg.norm(vector - detector.vector) - detector.radius
-                        distance = fast_cosine_distance_with_radius(detector.vector, vector, detector.radius, 0) # TODO: be aware of detector radius tweak
+                        distance = fast_cosine_distance_with_radius(detector_vector, vector, detector.radius, 0) # TODO: be aware of detector radius tweak
                         #print(euclidean_distance(detector.vector, vector, detector.radius, 0), distance)
                     elif detector.distance_type == distance_type == 'euclidean':
                         #distance = np.linalg.norm(vector - detector.vector) - detector.radius
                         #distance = euclidean_distance(detector.vector, vector, detector.radius, 0) # TODO: be aware of detector radius tweak
-                        distance = euclidean_distance(detector.vector, vector, detector.radius * 1, 0) # TODO: be aware of detector radius tweak
+                        distance = euclidean_distance(detector_vector, vector, detector.radius * 1, 0) # TODO: be aware of detector radius tweak
                         #print('detector distances', detector.radius, distance, detector.vector[0], detector.vector[1], detector.vector[2], vector[0], vector[1], vector[2])
                     distances.append(distance)
                 # they share no features, so distance is set to infinity
@@ -96,14 +102,14 @@ class Detector():
             max_distance = np.min(distances)  # maximum radius is set to the closest self
             max_index = np.argmin(distances)  # get the index of the max distance vector
             #print('Copute closest detector', euclidean_distance(detector_set.detectors[max_index].vector, vector, detector.radius, 0), max_distance) 
-            return max_distance, detector_set.detectors[max_index].vector
+            return max_distance, detector_set.detectors[max_index] #.vector #TODO: prehaps change to object instead of vector on the compute_closest_self too, like this
         else:
             return float('inf'), None
         
     @classmethod
     def compute_closest_self(cls, self_df, self_region_radius, vector, distance_type, feature_index):
         distances = []
-        
+            
         # check for distances to self samples
         for row in self_df.itertuples(index=False, name=None):
             self_vector = row[1]
@@ -115,17 +121,19 @@ class Detector():
             elif distance_type == 'euclidean':
                 distance = euclidean_distance(vector, self_vector, 0, self_region_radius)
             #if distance < 0:
-            #    print('Negative distance:', distance, vector, row[1])
+            #    print('Negative distance:', distance, vector, row[1])        
             distances.append(distance)
         # check for distances to other mature detectors
         #print('min before detectors', np.min(distances))
 
         #print('min after self:', np.min(distances))
         max_distance = np.min(distances)  # maximum radius is set to the closest self
+        #if len(vector) == 2:
+        #    print('max distance', max_distance)
         max_index = np.argmin(distances)  # get the index of the lowest distance
         #if euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius) != min_distance:
         #    print('NOT CORRECT VECTOR min index', min_index, 'min distance', min_distance, euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius))
-        return max_distance, self_df.iloc[max_index]['vector']
+        return max_distance, self_df.iloc[max_index] # ['vector']
         
     def to_dict(self):
         d = {
@@ -135,15 +143,12 @@ class Detector():
         }
         if self.feature_index is not None:
             d['feature_index'] = self.feature_index
+        #print('feature index', self.feature_index)
         return d
 
     @classmethod
     def from_dict(cls, data, fitness_function):
-        feature_index = data.get('feature_index')
-        if feature_index is not None:
-            return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function, feature_index)
-        else:
-            return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function)
+        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function, data.get('feature_index'))
     
     '''def mutate(self, mutation_rate, change, max):
         indexes = list(range(len(self.vector)))
@@ -157,6 +162,7 @@ class Detector():
         #print('Mutation:', previous, self.vector)    
     
     def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
+        #print('move away from nearest', self.vector, nearest_vector)
         direction = (self.vector - nearest_vector)    
         # Normalize the direction vector (optional, for consistent step size)
         #direction_normalized = direction / np.linalg.norm(direction)
@@ -169,8 +175,23 @@ class Detector():
             self.vector = new_pos
 
     # Currently averaging the position of the two parents
-    def recombine(self, other_parent, fitness_function):        
-        return [Detector((self.vector + other_parent.vector) / 2, 0, self.distance_type, fitness_function)] #, Detector(offspring2, 0, self.distance_type, self.detector_set)]
+    def recombine(self, other_parent, fitness_function):    
+        #common_features = list(set(self.feature_index).intersection(other_parent.feature_index))
+        if self.feature_index is None or other_parent.feature_index is None:
+            feature_index = list(range(len(self.vector)))
+        else:
+            feature_index = sorted(set(self.feature_index + other_parent.feature_index))
+        new_vector = np.zeros(len(feature_index))
+        for i, idx in enumerate(feature_index):
+            if idx in self.feature_index and idx in other_parent.feature_index:
+                new_vector[i] = (self.vector[self.feature_index.index(idx)] + other_parent.vector[other_parent.feature_index.index(idx)]) / 2
+            elif idx in self.feature_index:
+                new_vector[i] = self.vector[self.feature_index.index(idx)]
+            else:
+                new_vector[i] = other_parent.vector[other_parent.feature_index.index(idx)]
+        #if len(feature_index) != len(new_vector):
+        #    print('feature index **********************', feature_index, new_vector)
+        return [Detector(new_vector, 0, self.distance_type, fitness_function, feature_index)] #, Detector(offspring2, 0, self.distance_type, self.detector_set)]
 
     def dominated_by(self, comp_individual):
         ''' checks if this individual is dominated by the comp_individual '''

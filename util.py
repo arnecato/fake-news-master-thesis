@@ -105,6 +105,26 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
     # Show the plot
     fig.show()
 
+def get_shared_feature_vectors(vector_a, vector_a_feature_index, vector_b, vector_b_feature_index):
+    #print('vector_a_feature_index', vector_a_feature_index, 'vector_b_feature_index', vector_b_feature_index)
+    self_vector = None
+    detector_vector = None
+    if vector_a is not None and vector_b is not None:
+        if vector_a_feature_index is None:
+            shared_features = vector_b_feature_index 
+        elif vector_b_feature_index is None:
+            shared_features = vector_a_feature_index
+        else:
+            shared_features = set(vector_a_feature_index).intersection(set(vector_b_feature_index))
+        if len(shared_features) > 0:
+            shared_features = list(shared_features)
+            self_vector = np.zeros(len(shared_features))
+            detector_vector = np.zeros(len(shared_features))
+            for i, idx in enumerate(shared_features):
+                #print(i, idx, vector_a, vector_b, vector_a_feature_index.index(idx), vector_b_feature_index.index(idx))
+                self_vector[i] = vector_a[vector_a_feature_index.index(idx)]
+                detector_vector[i] = vector_b[vector_b_feature_index.index(idx)]
+    return self_vector, detector_vector, shared_features
 
 def euclidean_distance(a, b, a_radius, b_radius):
     #return np.sum(np.abs(a - b)) - a_radius - b_radius
@@ -153,12 +173,14 @@ def calculate_overlap(subject_vector_center, radius1, object_vector_center, radi
     if distance >= radius1 + radius2:
         return 0.0
     # complete coverage of subject by object
-    elif distance <= abs(radius2 - radius1):
-        return radius1 # subject is completely covered by object
+    elif distance <= radius2:
+        #print('complete coverage', distance, radius2)
+        return abs(radius1) # subject is completely covered by object
     # partial coverage of subject by object
     elif distance < radius1 + radius2:
         overlap_amount = (radius1 + radius2) - distance
         reduction_amount = overlap_amount / len(subject_vector_center) # adjust for dimensionality
+        #print('distance', distance, 'radius1', radius1, 'radius2', radius2, reduction_amount)
         return reduction_amount
     
     print('ops', subject_vector_center, object_vector_center, radius1, radius2)
