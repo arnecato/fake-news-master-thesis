@@ -65,10 +65,9 @@ class Detector():
                     best_vector = vector   
                     #print('new vector', best_distance, vector)'''
         detector = Detector(best_vector, 0, distance_type, fitness_function, feature_index)
-        #distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)
+        distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type, feature_index)
         distance_to_self, nearest_self = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type, feature_index)
-        detector.radius = distance_to_self #TODO: completely changed the logic here. Need to re-check!
-        #detector.radius = np.min([distance_to_detector, distance_to_self]) #TODO: completely changed the logic here. Need to re-check!
+        detector.radius = np.min([distance_to_detector, distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
         #detector.compute_fitness(detector_set)    
    
