@@ -112,12 +112,11 @@ class Detector():
     @classmethod
     def compute_closest_self(cls, self_df, self_region_radius, vector, distance_type):
         distances = []
-            
+        closest_self = []    
         # check for distances to self samples
         # only check those that are within a certain range
         threshold = 0.5  # Example threshold value
-        filtered_self_df = self_df[(self_df['vector'].apply(lambda x: x[0] > threshold)) | 
-                       (self_df['vector'].apply(lambda x: x[0] < -threshold))]
+        
         for row in self_df.itertuples(index=False, name=None):
             self_vector = row[1]
             #if feature_index is not None:
