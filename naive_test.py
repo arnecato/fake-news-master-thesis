@@ -80,4 +80,7 @@ print('True positive:', true_positive, 'False negative:', false_negative, 'False
 # 430 Precision: 0.9323671497584541 Recall 0.965
 
 # NSA 2D voronoi 16 pop
-# 110 detectors, Precision: 0.9792677547419497 Recall 0.925
+# 110 detectors, Precision: 0.9792677547419497 Recall 0.925 first example
+# 100 Precision: 0.9793001478560868 Recall 0.8279166666666666 2nd example (cutting away the overflowing ones)
+# 300 Precision: 0.9492119089316988 Recall 0.9033333333333333
+# 648 Precision: 0.911102172164119 Recall 0.94375

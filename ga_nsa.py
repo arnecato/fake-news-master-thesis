@@ -124,7 +124,7 @@ class NegativeSelectionGeneticAlgorithm():
         if self.detector_set is not None and len(self.detector_set.detectors) > 5:
             detector_points = np.array([detector.vector for detector in self.detector_set.detectors])
             vor = Voronoi(detector_points)
-            #print("Voronoi:", vor.vertices)
+            #vor.vertices = np.clip(vor.vertices, self.feature_low, self.feature_max)
             return vor.vertices
         else:
             return None
@@ -146,22 +146,21 @@ class NegativeSelectionGeneticAlgorithm():
             offsprings: List[Detector] = self.recombine_tournament()
             # mutate
             for offspring in offsprings:
-                # mutate (or move away from nearest)
-                step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
-                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
-                
-                #if distance_to_self < distance_to_detector:
-                #    offspring_vector, other_vector, shared_features = get_shared_feature_vectors(offspring.vector, offspring.feature_index, nearest_self.vector.copy(), self.self_feature_index)
-                #else:
-                #    offspring_vector, other_vector, shared_features = get_shared_feature_vectors(offspring.vector, offspring.feature_index, nearest_detector.vector.copy(), nearest_detector.feature_index)
-                #feature_low = self.feature_low[shared_features]
-                #feature_max = self.feature_max[shared_features]
-                if distance_to_self < distance_to_detector:
-                    other_vector = nearest_self.vector.copy()
+    
+                # half of the time move away from closest
+                if random.choice([True, False]):
+                    distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
+                    distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
+                    if distance_to_self < distance_to_detector:
+                        other_vector = nearest_self.vector.copy()
+                    else:
+                        other_vector = nearest_detector.vector.copy()
+                    
+                    step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
+                    offspring.move_away_from_nearest(other_vector, step, self.feature_low, self.feature_max)
+                # half of the time mutate normally
                 else:
-                    other_vector = nearest_detector.vector.copy()
-                offspring.move_away_from_nearest(other_vector, step, self.feature_low, self.feature_max)
+                    offspring.mutate(self.feature_low, self.feature_max)
                 
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
                 distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
@@ -270,7 +269,7 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 16, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean', args.feature_selection)
+    nsga = NegativeSelectionGeneticAlgorithm(args.dim, 10, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean', args.feature_selection)
 
     for i in range(args.amount):
         detector = nsga.evolve_detector(2, pop_check_ratio=1) 

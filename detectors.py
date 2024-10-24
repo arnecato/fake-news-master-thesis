@@ -157,16 +157,14 @@ class Detector():
     def from_dict(cls, data, fitness_function):
         return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function)
     
-    '''def mutate(self, mutation_rate, change, max):
-        indexes = list(range(len(self.vector)))
-        mutation_indexes = random.sample(indexes, int(len(self.vector) * mutation_rate))
-
-        for i in mutation_indexes:
-            if random.randint(0,1) == 0 and self.vector[i] < max[i]:
-                self.vector[i] += random.uniform(0, change[i])
-            elif self.vector[i] > -max[i]:
-                self.vector[i] -= random.uniform(0, change[i])'''
-        #print('Mutation:', previous, self.vector)    
+    def mutate(self, feature_low, feature_max):
+        old_vector = self.vector.copy()
+        for i in range(len(self.vector)):
+            range_i = feature_max[i] - feature_low[i]
+            mutation_step = np.random.beta(a=1, b=4) * 0.1 * range_i
+            self.vector[i] += mutation_step if random.choice([True, False]) else -mutation_step
+            self.vector[i] = np.clip(self.vector[i], feature_low[i], feature_max[i])
+        print('Old and new vector', old_vector, self.vector, self.vector - old_vector)
     
     def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
         #print('move away from nearest', self.vector, nearest_vector)
