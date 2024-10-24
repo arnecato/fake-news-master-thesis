@@ -71,3 +71,13 @@ print('True positive:', true_positive, 'False negative:', false_negative, 'False
 
 # NSA 2d, 100 detectors, Precision: 0.9268492031058438 Recall 0.945. 0.86/0.96
 # Precision: 0.976558837318331 Recall 0.8679166666666667
+# setting radius against detectors too Precision: 0.8823061630218688 Recall 0.9245833333333333
+# 130 detectors, pop 50 Precision: 0.9733624454148472 Recall 0.92875
+# 160 detectors, pop 50 Precision: 0.9679075738125802 Recall 0.9425
+# 220 detectors, pop 50 Precision: 0.9585097375105842 Recall 0.9433333333333334
+# 280 detectors, pop 50 Precision: 0.9488352745424293 Recall 0.9504166666666667
+# 400 detectors, pop 50 Precision:Precision: 0.9344660194174758 Recall 0.9625
+# 430 Precision: 0.9323671497584541 Recall 0.965
+
+# NSA 2D voronoi 16 pop
+# 110 detectors, Precision: 0.9792677547419497 Recall 0.925
