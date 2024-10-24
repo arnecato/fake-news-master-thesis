@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import json
-from util import euclidean_distance, fast_cosine_distance_with_radius, get_shared_feature_vectors
+from util import euclidean_distance, fast_cosine_distance_with_radius, get_shared_feature_vectors, get_nearby_self
 
 class Detector():
     def __init__(self, vector, radius, distance_type, fitness_function):
@@ -69,7 +69,7 @@ class Detector():
                     #print('new vector', best_distance, vector)'''
         detector = Detector(best_vector, 0, distance_type, fitness_function)
         distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)
-        distance_to_self, nearest_self = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type)
+        distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type)
         detector.radius = np.min([distance_to_detector, distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
         #detector.compute_fitness(detector_set)    
@@ -110,15 +110,13 @@ class Detector():
             return float('inf'), None
         
     @classmethod
-    def compute_closest_self(cls, self_df, self_region_radius, vector, distance_type):
+    def compute_closest_self(cls, self_points, self_region_radius, vector, distance_type):
         distances = []
-        closest_self = []    
-        # check for distances to self samples
-        # only check those that are within a certain range
-        threshold = 0.5  # Example threshold value
-        
-        for row in self_df.itertuples(index=False, name=None):
-            self_vector = row[1]
+        closest_selves = []    
+        closest_distance = float('inf')
+
+        for self_vector in get_nearby_self(self_points, vector, 40*self_region_radius): #TODO: double check that this type of value always makes sense
+            #self_vector = self_vector[1]
             #if feature_index is not None:
             #    self_vector = row[1][feature_index]
             
@@ -129,6 +127,8 @@ class Detector():
             #if distance < 0:
             #    print('Negative distance:', distance, vector, row[1])        
             distances.append(distance)
+            if distance < closest_distance:
+                closest_selves.append(self_vector)
         # check for distances to other mature detectors
         #print('min before detectors', np.min(distances))
 
@@ -139,7 +139,7 @@ class Detector():
         max_index = np.argmin(distances)  # get the index of the lowest distance
         #if euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius) != min_distance:
         #    print('NOT CORRECT VECTOR min index', min_index, 'min distance', min_distance, euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius))
-        return max_distance, self_df.iloc[max_index] # ['vector']
+        return max_distance, self_points[max_index], closest_selves # ['vector']
         
     def to_dict(self):
         d = {
@@ -163,7 +163,7 @@ class Detector():
             mutation_step = np.random.beta(a=1, b=4) * 0.1 * range_i
             self.vector[i] += mutation_step if random.choice([True, False]) else -mutation_step
             self.vector[i] = np.clip(self.vector[i], feature_low[i], feature_max[i])
-        print('Old and new vector', old_vector, self.vector, self.vector - old_vector)
+        #print('Old and new vector', old_vector, self.vector, self.vector - old_vector)
     
     def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
         #print('move away from nearest', self.vector, nearest_vector)

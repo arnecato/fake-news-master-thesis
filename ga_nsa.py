@@ -6,7 +6,7 @@ import argparse
 import os
 from typing import List
 from detectors import Detector, DetectorSet
-from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_overlap, get_shared_feature_vectors
+from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_overlap, get_shared_feature_vectors, get_nearby_self
 from scipy.spatial import Voronoi
 
 def compute_fitness(self, detector_set):
@@ -27,17 +27,14 @@ class NegativeSelectionGeneticAlgorithm():
         self.dim = dim
         self.pop_size = pop_size
         self.mutation_rate = mutation_rate          
-        self.true_df = true_df
+        self.self_points = np.array(true_df['vector'].tolist())
+        self.grid_distance = 2
+        #get_nearby_self(self.self_points, np.array([21,8]), 1)
         self.detector_set = detector_set
         self.distance_type = distance_type
         self.feature_selection = feature_selection
-        #self.self_feature_index = list(range(dim))
-        # find mean and stdev of feature values
-        feature_values = [value for value in self.true_df['vector'].tolist()]
-        #self.feature_mean = np.mean(true_df['vector'].tolist(), axis=0)
-        #self.feature_stdev = np.std(true_df['vector'].tolist(), axis=0)
-        self.feature_low = np.min(true_df['vector'].tolist(), axis=0)
-        self.feature_max = np.max(true_df['vector'].tolist(), axis=0)
+        self.feature_low = np.min(self.self_points, axis=0)
+        self.feature_max = np.max(self.self_points, axis=0)
         self.range = self.feature_max - self.feature_low
         self.feature_max = self.feature_max + self.range * 0.1
         self.feature_low = self.feature_low - self.range * 0.1
@@ -49,10 +46,10 @@ class NegativeSelectionGeneticAlgorithm():
         #print('Euclidean distance (mean,stdev):', self.euclidean_distance_mean, self.euclidean_distance_std, 'Cosine (mean,stdev):', self.cosine_distance_mean, self.cosine_distance_std)
         self_distances = []
         if self_region == -1:
-            for row_1st in self.true_df.itertuples(index=False, name=None):
+            for row_1st in self.self_points: #.itertuples(index=False, name=None):
                 closest_distance = 999999.0
-                for row_2nd in self.true_df.itertuples(index=False, name=None):
-                    distance = euclidean_distance(row_1st[1], row_2nd[1], 0, 0)
+                for row_2nd in self.self_points: #.itertuples(index=False, name=None):
+                    distance = euclidean_distance(row_1st, row_2nd, 0, 0)
                     if distance < closest_distance and distance != 0:
                         closest_distance = distance
                 #print(f'distance found {closest_distance}', row_1st[1], row_2nd[1])
@@ -76,14 +73,14 @@ class NegativeSelectionGeneticAlgorithm():
         print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) '''
         
     def initiate_population(self):
-        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.voronoi_points) for _ in range(self.pop_size)] 
+        self.population = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.voronoi_points) for _ in range(self.pop_size)] 
 
     def find_distributions(self):
-        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, 0, None, self.distance_type, compute_fitness, self.feature_selection) for _ in range(10)]
+        random_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, 0, None, self.distance_type, compute_fitness, self.feature_selection) for _ in range(10)]
         cosine_distances = []
         euclidean_distances = []
         for vector in random_detectors:
-            for row in self.true_df.itertuples(index=False, name=None):
+            for row in self.self_points.itertuples(index=False, name=None):
                 #distances.append(np.linalg.norm(vector.vector - row[1])) #self.vector_factory.document_vector(row[0]))
                 cosine_distances.append(fast_cosine_distance(vector.vector, row[1]))
                 euclidean_distances.append(euclidean_distance(vector.vector, row[1], 0, 0))
@@ -150,9 +147,9 @@ class NegativeSelectionGeneticAlgorithm():
                 # half of the time move away from closest
                 if random.choice([True, False]):
                     distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                    distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
+                    distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type)
                     if distance_to_self < distance_to_detector:
-                        other_vector = nearest_self.vector.copy()
+                        other_vector = nearest_self.copy()
                     else:
                         other_vector = nearest_detector.vector.copy()
                     
@@ -163,13 +160,13 @@ class NegativeSelectionGeneticAlgorithm():
                     offspring.mutate(self.feature_low, self.feature_max)
                 
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
+                distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type)
                 offspring.radius = np.min([distance_to_detector, distance_to_self])
                 offspring.compute_fitness(self.detector_set)
 
             self.population.extend(offsprings)     
             # add random detectors
-            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.voronoi_points) for _ in range(int(0.5 * self.pop_size))]
+            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.voronoi_points) for _ in range(int(0.5 * self.pop_size))]
             for rnd_detector in rnd_detectors:
                 #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type, offspring.feature_index)
                 #distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, rnd_detector.vector, self.distance_type, rnd_detector.feature_index)
@@ -207,7 +204,7 @@ class NegativeSelectionGeneticAlgorithm():
         if pop_check_ratio < 1:
             old_r = self.population[0].radius
             #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, self.population[0].vector, self.distance_type, self.population[0].feature_index)
-            distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, self.population[0].vector, self.distance_type)
+            distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, self.population[0].vector, self.distance_type)
             self.population[0].radius = distance_to_self #np.min([distance_to_detector, distance_to_self])
             print(self.population[0].vector)
             self.population[0].compute_fitness(self.detector_set)

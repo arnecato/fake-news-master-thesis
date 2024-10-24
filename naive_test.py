@@ -84,3 +84,7 @@ print('True positive:', true_positive, 'False negative:', false_negative, 'False
 # 100 Precision: 0.9793001478560868 Recall 0.8279166666666666 2nd example (cutting away the overflowing ones)
 # 300 Precision: 0.9492119089316988 Recall 0.9033333333333333
 # 648 Precision: 0.911102172164119 Recall 0.94375
+
+# NSA 2D mutation 10 pop
+# 408 Precision: 0.947912360479537 Recall 0.9554166666666667
+# 608 Precision: 0.9321486268174475 Recall 0.9616666666666667

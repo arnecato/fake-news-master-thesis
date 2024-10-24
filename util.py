@@ -126,6 +126,17 @@ def get_shared_feature_vectors(vector_a, vector_a_feature_index, vector_b, vecto
                 detector_vector[i] = vector_b[vector_b_feature_index.index(idx)]
     return self_vector, detector_vector, shared_features
 
+def get_nearby_self(points, center, distance):
+    # Calculate the minimum and maximum bounds for each dimension
+    min_bounds = center - distance
+    max_bounds = center + distance
+    
+    # Apply the conditions for all dimensions
+    conditions = np.all((points >= min_bounds) & (points <= max_bounds), axis=1)
+    selected_values = points[conditions]
+    #print(selected_values)
+    return selected_values
+
 def euclidean_distance(a, b, a_radius, b_radius):
     #return np.sum(np.abs(a - b)) - a_radius - b_radius
     return np.linalg.norm(a - b) - a_radius - b_radius
