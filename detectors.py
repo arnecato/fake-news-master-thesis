@@ -18,7 +18,7 @@ class Detector():
         return self.fitness_function(self, *args, **kwargs)
 
     @classmethod
-    def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type, fitness_function, voronoi_points):
+    def create_detector(cls, feature_low, feature_high, dim, self_df, self_region, detector_set, distance_type, fitness_function, voronoi_points, self_range):
         '''feature_index = list(range(len(self_df.iloc[0]['vector'])))
         if feature_selection > 0:
             #print('Feature selection:', feature_selection)
@@ -69,7 +69,7 @@ class Detector():
                     #print('new vector', best_distance, vector)'''
         detector = Detector(best_vector, 0, distance_type, fitness_function)
         distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)
-        distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type)
+        distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type, self_range)
         detector.radius = np.min([distance_to_detector, distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
         #detector.compute_fitness(detector_set)    
@@ -110,12 +110,20 @@ class Detector():
             return float('inf'), None
         
     @classmethod
-    def compute_closest_self(cls, self_points, self_region_radius, vector, distance_type):
+    def compute_closest_self(cls, self_points, self_region_radius, vector, distance_type, feature_range):
         distances = []
         closest_selves = []    
         closest_distance = float('inf')
 
-        for self_vector in get_nearby_self(self_points, vector, 40*self_region_radius): #TODO: double check that this type of value always makes sense
+        #print('range', np.max(feature_range) * 0.3)
+        for i in np.arange(0.01, 1, 0.1):
+            nearby_self = get_nearby_self(self_points, vector, np.max(feature_range) * i)
+            if len(nearby_self) > 0:
+                break
+        if len(nearby_self) == 0:
+            raise Exception(f'No nearby self points found {vector}, {feature_range}')
+        
+        for self_vector in nearby_self: #TODO: double check that this type of value always makes sense
             #self_vector = self_vector[1]
             #if feature_index is not None:
             #    self_vector = row[1][feature_index]

@@ -53,24 +53,24 @@ class BERTVectorFactory():
         # Optionally, save the resulting DataFrame with vectors to a file
         df.to_hdf(save_filepath, key='df', mode='w')
 
-    def vectorize_dataframe(self, load_filepath, save_filepath, columns):
-            df = pd.read_csv(load_filepath) 
-            df = df[columns]
-            df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str))[:512], axis=1) 
-            df = df[['text']]
-            time0 = time.perf_counter()
-            df['text'] = df['text'].apply(lambda x: x[:512])
-            df['vector'] = df['text'].apply(lambda x: self.document_vector(x))
-            print('Time:', time.perf_counter() - time0)
-            df.to_hdf(save_filepath, key='df', mode='w') 
+    def vectorize_dataframe_first_characters(self, load_filepath, save_filepath, columns, first_characters):
+        df = pd.read_csv(load_filepath)
+        df = df[columns]
+        df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str))[:512], axis=1)
+        df = df[['text']]
+        time0 = time.perf_counter()
+
+        df['vector'] = df['text'].apply(self.document_vector)
+        print('Time:', time.perf_counter() - time0)
+        df.to_hdf(save_filepath, key='df', mode='w')
     
     def load_vectorized_dataframe(self, load_filepath):
         return pd.read_hdf(load_filepath, key='df')
     
 def main():
     bert_vfac = BERTVectorFactory()
-    bert_vfac.vectorize_dataframe('dataset/ISOT/True.csv', 'dataset/ISOT/True_BERT.h5', ['title', 'text'])
-    bert_vfac.vectorize_dataframe('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_BERT.h5', ['title', 'text'])
+    bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/True.csv', 'dataset/ISOT/True_256_BERT.h5', ['title', 'text'], 256)
+    bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_256_BERT.h5', ['title', 'text'], 256)
     #bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/True.csv', 'dataset/ISOT/True_BERT.h5', ['title', 'text'])
     #bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_BERT.h5', ['title', 'text'])
 

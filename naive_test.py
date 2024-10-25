@@ -88,3 +88,6 @@ print('True positive:', true_positive, 'False negative:', false_negative, 'False
 # NSA 2D mutation 10 pop
 # 408 Precision: 0.947912360479537 Recall 0.9554166666666667
 # 608 Precision: 0.9321486268174475 Recall 0.9616666666666667
+
+# NSA 2D UMAP cosine
+# 200 Precision: 0.9595833333333333 Recall 0.9595833333333333

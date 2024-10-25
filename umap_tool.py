@@ -9,7 +9,7 @@ import h5py
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
-def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, min_dist=0.1):
+def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, min_dist=0.1, postfix='', metric='euclidean'):
     time0 = time.perf_counter()
     true_df = pd.read_hdf(filepath_true, key='df') 
     # center vectors
@@ -20,7 +20,8 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     if sample_size == -1:
         sample_size = len(true_df)
     true_df = true_df.sample(sample_size, random_state=42)
-    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist) 
+    print('Metrics:', metric)
+    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
     true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
 
     # reducing dimensions based on only true training data (assumption we have no access to other data)
@@ -42,7 +43,9 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     # save to file
     if sample_size == -1:
         sample_size = 'all'
-    filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{sample_size}.h5'
+    if postfix != '':
+        postfix = '_' + postfix
+    filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{sample_size}{postfix}.h5'
     true_training_df.to_hdf(filepath, key='true_training', mode='a')
     true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
     true_test_df.to_hdf(filepath, key='true_test', mode='a')
@@ -112,7 +115,8 @@ def main():
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
     umap_parser.add_argument('--min_dist', type=float, default=0.1, help='Minimum distance for UMAP')
-
+    umap_parser.add_argument('--postfix', type=str, default='', help='Postfix for the output file name')
+    umap_parser.add_argument('--metric', type=str, default='euclidean', help='Metric for UMAP')
     plot_parser = subparsers.add_parser('plot', help='Plot data distribution')
     plot_parser.add_argument('--filepath', type=str, required=True, help='Path to the input HDF5 file for plotting')
     plot_parser.add_argument('--true_keys', type=str, default='true_training,true_validation,true_test', help='Comma-separated list of keys for true data')
@@ -122,7 +126,7 @@ def main():
 
     # Execute based on the chosen subcommand
     if args.command == 'umap':
-        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, min_dist=args.min_dist)
+        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, min_dist=args.min_dist, postfix=args.postfix)
     elif args.command == 'plot':
         plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','))
     else:

@@ -5,7 +5,7 @@ from detectors import DetectorSet
 from nsgaii_nsa import compute_fitness
 import time
 
-dset = DetectorSet.load_from_file("model/detector/detectors_bert_2dim_3600_6000_voronoi.json", compute_fitness)
+dset = DetectorSet.load_from_file("model/detector/detectors_bert_3dim_3600_6000_voronoi.json", compute_fitness)
 print('Detectors:', len(dset.detectors))
 feature_index_lengths = {}
 detector_points = []
