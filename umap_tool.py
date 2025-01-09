@@ -31,7 +31,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.3, random_state=42)
     print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
     # prepare dimension reducer
-    true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
+    true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
     print('UMAP fitting size:', len(true_fake_umap_fitting_df))
     dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
     #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING

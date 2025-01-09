@@ -69,7 +69,7 @@ fake_training_df = training_df[training_df['label'] == 'fake'].drop(columns=['la
 true_training_df.to_hdf('dataset/ISOT/True_tfidf.hd5', key='df')
 fake_training_df.to_hdf('dataset/ISOT/Fake_tfidf.hd5', key='df')
 
-true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
+true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
 print('UMAP fitting size:', len(true_fake_umap_fitting_df))
 dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
 
