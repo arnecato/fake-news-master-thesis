@@ -9,48 +9,62 @@ import h5py
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
-def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, min_dist=0.1, postfix='', metric='euclidean'):
+def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, umap_sample_size=1000, min_dist=0.0, postfix='', metric='euclidean'):
     time0 = time.perf_counter()
     true_df = pd.read_hdf(filepath_true, key='df') 
-    # center vectors
-    #umap_embeddings_true = np.vstack(true_df['vector'].values)
-    #mean_true = umap_embeddings_true.mean(axis=0)
-    #umap_embeddings_true_centered = umap_embeddings_true - mean_true
-    #true_df['vector'] = [np.array(vec) for vec in umap_embeddings_true_centered] # TODO: move this code to dataset processing. UMAP, centering etc.
+    fake_df = pd.read_hdf(filepath_fake, key='df')
+
     if sample_size == -1:
         sample_size = len(true_df)
+    print('Sample size:', sample_size)
     true_df = true_df.sample(sample_size, random_state=42)
-    print('Metrics:', metric)
-    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
-    true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
-
-    # reducing dimensions based on only true training data (assumption we have no access to other data)
-    print('True training length:', len(true_training_df))
-    dimension_reducer.fit(np.vstack(true_training_df['vector'].values))
-    reduced_true_vectors = dimension_reducer.transform(np.vstack(true_df['vector'].values))
-    true_df['vector'] =  [np.array(vec) for vec in reduced_true_vectors]
-    true_training_df, tmp_df = train_test_split(true_df, test_size=0.4, random_state=42)
-    true_validation_df, true_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
- 
-    fake_df = pd.read_hdf(filepath_fake, key='df')
     fake_df = fake_df.sample(sample_size, random_state=42)
-    # all fake data can be trransformed at once
-    reduced_vectors = dimension_reducer.transform(np.vstack(fake_df['vector'].values))
-    fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
-    fake_training_df, tmp_df = train_test_split(fake_df, test_size=0.4, random_state=42)
-    fake_validation_df, fake_test_df = train_test_split(tmp_df, test_size=0.5, random_state=42)
+    if umap_sample_size == -1:
+        umap_sample_size = sample_size
+
+    #true_df['vector'] = true_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+    # TODO: REMOVE HARDCODING
+    #true_df = true_df.sample(8000, random_state=42)
+    print('Metrics:', metric, 'Min dist:', min_dist, 'Neighbors:', neighbors)
+    true_training_df, true_test_df = train_test_split(true_df, test_size=0.3, random_state=42)
+    print('True training size:', len(true_training_df), 'Test size:', len(true_test_df))
+    fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.3, random_state=42)
+    print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
+    # prepare dimension reducer
+    true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
+    print('UMAP fitting size:', len(true_fake_umap_fitting_df))
+    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
+    #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
+    dimension_reducer.fit(np.vstack(true_fake_umap_fitting_df['vector'].values))
+    # reduce dimensions of all training data
+    reduced_true_training_vectors = dimension_reducer.transform(np.vstack(true_training_df['vector'].values))
+    true_training_df['vector'] =  [np.array(vec) for vec in reduced_true_training_vectors]
+    reduced_true_test_vectors = dimension_reducer.transform(np.vstack(true_test_df['vector'].values))
+    true_test_df['vector'] =  [np.array(vec) for vec in reduced_true_test_vectors]
+    # reduce dimensions for all fake data
+    reduced_fake_training_vectors = dimension_reducer.transform(np.vstack(fake_training_df['vector'].values))
+    fake_training_df['vector'] = [np.array(vec) for vec in reduced_fake_training_vectors]
+    reduced_fake_test_vectors = dimension_reducer.transform(np.vstack(fake_test_df['vector'].values))
+    fake_test_df['vector'] = [np.array(vec) for vec in reduced_fake_test_vectors]
+
+    #fake_df = pd.read_hdf(filepath_fake, key='df')
+    #fake_df['vector'] = fake_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+    # all fake data can be transformed at once
+    #reduced_vectors = dimension_reducer.transform(np.vstack(fake_df['vector'].values))
+    #fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
+    
 
     # save to file
     if sample_size == -1:
         sample_size = 'all'
     if postfix != '':
         postfix = '_' + postfix
-    filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{sample_size}{postfix}.h5'
+    filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{umap_sample_size}_{sample_size}{postfix}.h5'
     true_training_df.to_hdf(filepath, key='true_training', mode='a')
-    true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
+    #true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
     true_test_df.to_hdf(filepath, key='true_test', mode='a')
     fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
-    fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
+    #fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
     fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
     
     # add metadata
@@ -114,19 +128,20 @@ def main():
     umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert', 'word2vec'], help='Type of word embedding')
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
-    umap_parser.add_argument('--min_dist', type=float, default=0.1, help='Minimum distance for UMAP')
+    umap_parser.add_argument('--min_dist', type=float, default=0.0, help='Minimum distance for UMAP')
     umap_parser.add_argument('--postfix', type=str, default='', help='Postfix for the output file name')
     umap_parser.add_argument('--metric', type=str, default='euclidean', help='Metric for UMAP')
+    umap_parser.add_argument('--umap_sample_size', type=int, default=1000, help='Sample size for UMAP fitting')
     plot_parser = subparsers.add_parser('plot', help='Plot data distribution')
     plot_parser.add_argument('--filepath', type=str, required=True, help='Path to the input HDF5 file for plotting')
-    plot_parser.add_argument('--true_keys', type=str, default='true_training,true_validation,true_test', help='Comma-separated list of keys for true data')
-    plot_parser.add_argument('--fake_keys', type=str, default='fake_training,fake_validation,fake_test', help='Comma-separated list of keys for fake data')
+    plot_parser.add_argument('--true_keys', type=str, default='true_training,true_test', help='Comma-separated list of keys for true data')
+    plot_parser.add_argument('--fake_keys', type=str, default='fake_training,fake_test', help='Comma-separated list of keys for fake data')
 
     args = parser.parse_args()
 
     # Execute based on the chosen subcommand
     if args.command == 'umap':
-        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, min_dist=args.min_dist, postfix=args.postfix)
+        reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, umap_sample_size=args.umap_sample_size, min_dist=args.min_dist, postfix=args.postfix, metric=args.metric)
     elif args.command == 'plot':
         plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','))
     else:

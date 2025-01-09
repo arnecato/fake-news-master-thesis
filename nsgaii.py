@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 from detectors import Detector, DetectorSet
-from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_overlap, fast_cosine_distance_with_radius
+from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius
 import pandas as pd
 import os
 import time
@@ -19,7 +19,7 @@ def compute_fitness(self, detector_set):
     if detector_set is not None:
         for detector in detector_set.detectors:
             if not np.array_equal(self.vector, detector.vector):          
-                overlap += calculate_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
+                overlap += calculate_radius_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
     self.f1 = area - overlap
     self.f2 = overlap
 
@@ -66,7 +66,7 @@ class NSGAII_Negative_Selection():
         for i, row_1st in enumerate(self.true_df.itertuples(index=False, name=None)):
             for j, row_2nd in enumerate(self.true_df.itertuples(index=False, name=None)):
                 if i != j:
-                    tmp_self_overlap += calculate_overlap(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
+                    tmp_self_overlap += calculate_radius_overlap(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
         self.total_positive_space = tmp_positive_space - tmp_self_overlap
         self.total_negative_space = self.total_space - self.total_positive_space   
         print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 

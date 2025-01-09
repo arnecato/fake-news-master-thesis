@@ -2,6 +2,7 @@ import numpy as np
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import math
+from scipy.spatial import Voronoi
 
 # Create 2D visualization
 def visualize_2d(true_df, fake_df, detector_set, self_region):
@@ -130,13 +131,23 @@ def get_nearby_self(points, center, distance):
     # Calculate the minimum and maximum bounds for each dimension
     min_bounds = center - distance
     max_bounds = center + distance
-    
+    #print(points, center, distance, min_bounds, max_bounds)
     # Apply the conditions for all dimensions
     conditions = np.all((points >= min_bounds) & (points <= max_bounds), axis=1)
     selected_values = points[conditions]
     #print(selected_values)
     return selected_values
 
+def calculate_voronoi_points(detector_set):
+    # calculate voronoi points
+    if detector_set is not None and len(detector_set.detectors) > 5:
+        detector_points = np.array([detector.vector for detector in detector_set.detectors])
+        vor = Voronoi(detector_points)
+        #vor.vertices = np.clip(vor.vertices, self.feature_low, self.feature_max)
+        return vor.vertices
+    else:
+        return None
+    
 def euclidean_distance(a, b, a_radius, b_radius):
     #return np.sum(np.abs(a - b)) - a_radius - b_radius
     return np.linalg.norm(a - b) - a_radius - b_radius
@@ -176,7 +187,60 @@ def fast_cosine_distance_with_radius(a, b, a_radius, b_radius, feature_index):
     # Ensure the distance is non-negative
     return adjusted_distance
 
-def calculate_overlap(subject_vector_center, radius1, object_vector_center, radius2):
+def hypersphere_volume(radius, dimension):    
+    return (math.pi ** (dimension / 2) * radius ** dimension) / math.gamma((dimension / 2) + 1)
+
+def hypersphere_overlap(r1, r2, distance, dimension):
+    """
+    Calculate the overlap volume between two n-dimensional hyperspheres.
+    
+    :param r1: float, radius of the first hypersphere
+    :param r2: float, radius of the second hypersphere
+    :param distance: float, distance between the centers of the hyperspheres
+    :param dimension: int, dimension of the hyperspheres (2, 3, or 4)
+    :return: float, overlap volume
+    """
+    if distance >= r1 + r2:
+        return 0.0  # No overlap
+    elif distance <= abs(r1 - r2):
+        return hypersphere_volume(min(r1, r2), dimension)  # One is completely inside the other
+    
+    if dimension == 2:  # Overlap area for circles
+        part1 = r1**2 * math.acos((distance**2 + r1**2 - r2**2) / (2 * distance * r1))
+        part2 = r2**2 * math.acos((distance**2 + r2**2 - r1**2) / (2 * distance * r2))
+        part3 = 0.5 * math.sqrt((-distance + r1 + r2) * (distance + r1 - r2) * (distance - r1 + r2) * (distance + r1 + r2))
+        return part1 + part2 - part3
+    
+    elif dimension == 3:  # Overlap volume for spheres
+        return (math.pi * (r1 + r2 - distance)**2 / (12 * distance)) * (
+            distance**2 + 2 * distance * (r1 + r2) - 3 * (r1**2 + r2**2) + 6 * r1 * r2
+        )
+    
+    elif dimension == 4:  # Approximation for 4D hypersphere overlap
+        # Using integral-based approximation for higher dimensions
+        r1_vol = hypersphere_volume(r1, 4)
+        r2_vol = hypersphere_volume(r2, 4)
+        if distance <= abs(r1 - r2):  # One hypersphere is inside the other
+            return min(r1_vol, r2_vol)
+        combined_radius = max(0, (r1 + r2 - distance) / 2)
+        return hypersphere_volume(combined_radius, 4)
+    
+    else:
+        raise ValueError("Overlap formulas are only implemented for dimensions 2, 3, and 4.")
+
+def total_detector_hypersphere_volume(detector_set):
+    if len(detector_set.detectors) == 0:
+        return 0
+    volume = 0
+    overlap = 0
+    for i, detector_1 in enumerate(detector_set.detectors): #self.true_df.itertuples(index=False, name=None)):
+        volume += hypersphere_volume(detector_1.radius, len(detector_1.vector))
+        for j, detector_2 in enumerate(detector_set.detectors): #enumerate(self.true_df.itertuples(index=False, name=None)):
+            if i != j:
+                overlap += hypersphere_overlap(detector_1.radius, detector_2.radius, math.dist(detector_1.vector, detector_2.vector), len(detector_1.vector)) / 2.0 #alculate_overlap(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
+    return volume - overlap
+
+def calculate_radius_overlap(subject_vector_center, radius1, object_vector_center, radius2):
     # Calculate the distance between the centers
     distance = math.dist(subject_vector_center, object_vector_center)
     
@@ -208,191 +272,6 @@ def recall(tp, fn):
         return 0
     return tp / (tp + fn)
 
-
-# M.O PLOTTING **********
-
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import animation
-
-def plot_schaffer(A, pareto_fronts):
-    ''' Minimize f1(x) = x**2. Minimize f2(x) = (x - 2)**2 '''
-
-    X = np.linspace(-A, A, 20*A)
-    
-    f1 = X**2
-    f2 = (X - 2)**2
-
-    # Creating subplots
-    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
-    # First subplot
-    axs[0].plot(X, f1, label='$f1 = X^2$')
-    axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
-    axs[0].set_title('Plot of $f_1$ and $f_2$')
-    axs[0].set_xlabel('$x$')
-    axs[0].set_ylabel('$f_1, f_2$', rotation=0, labelpad=20)
-    axs[0].legend()
-    axs[0].grid(True)
-
-    # Second subplot
-    axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
-    axs[1].set_title('Objective space of $f_1$ and $f_2$')
-    axs[1].set_xlabel('$f_2$')
-    axs[1].set_ylabel('$f_1$', color='g', rotation=0, labelpad=20)
-    axs[1].grid(True)
-
-    # plot paretofronts
-    max_x = -np.inf
-    min_x = np.inf
-    max_f1 = -np.inf
-    max_f2 = -np.inf
-    if pareto_fronts != None:
-        for i, front in enumerate(pareto_fronts):
-            f1 = []
-            f2 = []
-            cur_x = []
-            for ind in front.individuals_sorted_by_distance:
-                f1.append(ind.f1)
-                f2.append(ind.f2)
-                cur_x.append(ind.x)
-            axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((f1, f2)), label=f"{i+1}")
-            axs[1].scatter(f2, f1, label=f'{i+1}')
-            if np.max(cur_x) > max_x:
-                max_x = np.max(cur_x)
-            if np.min(cur_x) < min_x:
-                min_x = np.min(cur_x)
-            if np.max(f1) > max_f1:
-                max_f1 = np.max(f1)
-            if np.max(f2) > max_f2:
-                max_f2 = np.max(f2)
-    axs[1].legend(loc='upper right')
-    
-    # dynamic area to show
-    axs[1].set_xlim(-1, max_f2)
-    axs[1].set_ylim(-1, max_f1)
-    axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
-    axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
-    # Displaying the plots
-    plt.tight_layout()
-    plt.show()
-
-
-
-#plot_schaffer(None)
-
-def animate_nsga_2_run(pareto_fronts_log, A=5):
-    #animation_obj = animation.FuncAnimation(fig, animate, n_steps, fargs=(x_points, y_points), interval=1000) 
-
-    def animate_fronts(i, pareto_fronts_log, f1, f2, X):
-        axs[0].clear()
-        axs[1].clear()
-        axs[0].plot(X, f1, label='$f1 = X^2$')
-        axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
-        axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
-
-        # plot paretofronts
-        max_x = -np.inf
-        min_x = np.inf
-        max_f1 = -np.inf
-        max_f2 = -np.inf
-        if pareto_fronts_log[i] != None:
-            for j, front in enumerate(pareto_fronts_log[i]):
-                cur_f1 = []
-                cur_f2 = []
-                cur_x = []
-                for ind in front.individuals_sorted_by_distance:
-                    cur_f1.append(ind.f1)
-                    cur_f2.append(ind.f2)
-                    cur_x.append(ind.x)
-
-                axs[1].scatter(cur_f2, cur_f1, label=f'{j+1}')
-                axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((cur_f1, cur_f2)), label=f"{j+1}")
-
-                if np.max(cur_x) > max_x:
-                    max_x = np.max(cur_x)
-                if np.min(cur_x) < min_x:
-                    min_x = np.min(cur_x)
-                if np.max(cur_f1) > max_f1:
-                    max_f1 = np.max(cur_f1)
-                if np.max(cur_f2) > max_f2:
-                    max_f2 = np.max(cur_f2)
-
-        axs[1].legend(loc='upper right')
-        axs[0].legend(loc='upper right')
-
-        # dynamic area to show
-        axs[1].set_xlim(-1, max_f2)
-        axs[1].set_ylim(-1, max_f1)
-        axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
-        axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
-
-        text_top = np.max([max_f1, max_f2])
-        axs[0].text(0, text_top + text_top/10, f"Generation {i+1} / {len(pareto_fronts_log)}")
-
-    X = np.linspace(-A, A, 20*A)
-    
-    f1 = X**2
-    f2 = (X - 2)**2
-
-    # Creating subplots
-    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
-    # First subplot
-    axs[0].plot(X, f1, label='$f1 = X^2$')
-    axs[0].plot(X, f2, label='$f2 = (X - 2)^2$')
-    axs[0].set_title('Plot of $f_1$ and $f_2$')
-    axs[0].set_xlabel('$x$')
-    axs[0].set_ylabel('$f_1, f_2$', rotation=0, labelpad=20)
-    axs[0].legend()
-    axs[0].grid(True)
-
-    # Second subplot
-    axs[1].plot(f2, f1, 'g-', label='$f1 = X^2$')  # f1 on primary y-axis
-    axs[1].set_title('Objective space of $f_1$ and $f_2$')
-    axs[1].set_xlabel('$f_2$')
-    axs[1].set_ylabel('$f_1$', color='g', rotation=0, labelpad=20)
-    axs[1].grid(True)
-
-    # plot paretofronts
-    max_x = -np.inf
-    min_x = np.inf
-    max_f1 = -np.inf
-    max_f2 = -np.inf
-    if pareto_fronts_log[0] != None:
-        for i, front in enumerate(pareto_fronts_log[0]):
-            cur_f1 = []
-            cur_f2 = []
-            cur_x = []
-            for ind in front.individuals_sorted_by_distance:
-                cur_f1.append(ind.f1)
-                cur_f2.append(ind.f2)
-                cur_x.append(ind.x)
-
-            axs[1].scatter(cur_f2, cur_f1, label=f'{i+1}')
-            axs[0].scatter(np.concatenate((cur_x, cur_x)), np.concatenate((cur_f1, cur_f2)), label=f"{i+1}")
-
-            if np.max(cur_x) > max_x:
-                max_x = np.max(cur_x)
-            if np.min(cur_x) < min_x:
-                min_x = np.min(cur_x)
-            if np.max(cur_f1) > max_f1:
-                max_f1 = np.max(cur_f1)
-            if np.max(cur_f2) > max_f2:
-                max_f2 = np.max(cur_f2)
-            
-    axs[1].legend(loc='upper right')
-    axs[0].legend(loc='upper right')
-    
-    # dynamic area to show
-    axs[1].set_xlim(-1, max_f2)
-    axs[1].set_ylim(-1, max_f1)
-    axs[0].set_xlim(min_x - abs(0.25 * min_x), max_x + abs(0.25 * max_x))
-    axs[0].set_ylim(-1, np.max([max_f1, max_f2]))
-    
-    text_top = np.max([max_f1, max_f2])
-    axs[0].text(0, text_top + text_top/10, f"Generation {1} / {len(pareto_fronts_log)}")
-
-    animation_obj = animation.FuncAnimation(fig, animate_fronts, len(pareto_fronts_log), fargs=(pareto_fronts_log, f1, f2, X, ), interval=1500) 
-    #writervideo = animation.FFMpegWriter(fps=1) 
-    animation_obj.save("gifs/performance_animation.gif", dpi=300, writer=animation.PillowWriter(fps=1))
-    #animation_obj.save('perfromance_animation.mp4', writer=writervideo)
-    plt.close() 
+v = hypersphere_volume(0.04318423289042272, 2)
+o = hypersphere_overlap(1, 1, 1, 2)
+print(v, o)

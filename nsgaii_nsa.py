@@ -1,7 +1,8 @@
 import numpy as np
+import random
 import itertools
 from detectors import Detector, DetectorSet
-from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_overlap, fast_cosine_distance_with_radius
+from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume
 import pandas as pd
 import os
 import time
@@ -14,62 +15,61 @@ NSGAII part based on Deb et al. (2001)
 
 def compute_fitness(self, detector_set):
     ''' Fitness function to be used by the detector '''
-    area = np.pi * self.radius**2
     overlap = 0
+    closest_detector = None
+    closest_distance = float('inf')
     if detector_set is not None:
         for detector in detector_set.detectors:
             if not np.array_equal(self.vector, detector.vector):          
-                overlap += calculate_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
-    self.f1 = area - overlap
-    self.f2 = overlap
+                overlap += calculate_radius_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
+                distance = euclidean_distance(self.vector, detector.vector, 0, detector.radius)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_detector = detector
+    self.f1 = self.radius - overlap 
+    if closest_detector is not None:
+        self.f2 = 1 / abs(closest_detector.radius)
+    else:
+        self.f2 = float('inf')
 
 class NSGAII_Negative_Selection():
 
-    def __init__(self, dim, pop_size, self_region_rate, true_df, detector_set, distance_type='euclidean'):
+    def __init__(self, dim, pop_size, self_region_rate, true_df, detector_set, distance_type, self_region):
         self.dim = dim
         self.pop_size = pop_size
-        #self.mutation_rate = mutation_rate
-        self.true_df = true_df
+        self.self_points = np.array(true_df['vector'].tolist())
+        #get_nearby_self(self.self_points, np.array([21,8]), 1)
         self.detector_set = detector_set
         self.distance_type = distance_type
-        # find mean and stdev of feature values
-        feature_values = [value for value in self.true_df['vector'].tolist()]
-        #self.feature_mean = np.mean(true_df['vector'].tolist(), axis=0)
-        #self.feature_stdev = np.std(true_df['vector'].tolist(), axis=0)
-        self.feature_low = np.min(true_df['vector'].tolist(), axis=0)
-        self.feature_max = np.max(true_df['vector'].tolist(), axis=0)
+        #self.feature_selection = feature_selection
+        self.feature_low = np.min(self.self_points, axis=0)
+        self.feature_max = np.max(self.self_points, axis=0)
         self.range = self.feature_max - self.feature_low
-        self.feature_max = self.feature_max + self.range * 0.1
-        self.feature_low = self.feature_low - self.range * 0.1
+        print('Feature range:', self.range)
+        self.feature_max = self.feature_max + self.range * 0.25
+        self.feature_low = self.feature_low - self.range * 0.25
+        #self.voronoi_points = calculate_voronoi_points(self.detector_set)
         #self.feature_stdev = self.feature_stdev / 2 # TODO: find better way to limit the stdev. Stdev is used to bound the total space area (when initializing detectors)
         print('Feature values (low, max):', self.feature_low, self.feature_max)
         # find mean and stdev of distances between random detectors and self samples
         #self.euclidean_distance_mean, self.euclidean_distance_std, self.cosine_distance_mean, self.cosine_distance_std = self.find_distributions()
         #print('Euclidean distance (mean,stdev):', self.euclidean_distance_mean, self.euclidean_distance_std, 'Cosine (mean,stdev):', self.cosine_distance_mean, self.cosine_distance_std)
         self_distances = []
-        for row_1st in self.true_df.itertuples(index=False, name=None):
-            closest_distance = 999999.0
-            for row_2nd in self.true_df.itertuples(index=False, name=None):
-                distance = euclidean_distance(row_1st[1], row_2nd[1], 0, 0)
-                if distance < closest_distance and distance != 0:
-                    closest_distance = distance
-            #print(f'distance found {closest_distance}', row_1st[1], row_2nd[1])
-            if distance != 0: # avoid adding distance to itself
-                self_distances.append(closest_distance)
-        self.self_region = np.mean(self_distances) * self_region_rate
+        print(self_region)
+        if self_region == -1:
+            for row_1st in self.self_points: #.itertuples(index=False, name=None):
+                closest_distance = 999999.0
+                for row_2nd in self.self_points: #.itertuples(index=False, name=None):
+                    distance = euclidean_distance(row_1st, row_2nd, 0, 0)
+                    if distance < closest_distance and distance != 0:
+                        closest_distance = distance
+                #print(f'distance found {closest_distance}', row_1st[1], row_2nd[1])
+                if distance != 0: # avoid adding distance to itself
+                    self_distances.append(closest_distance)
+            self.self_region = np.mean(self_distances) * self_region_rate
+        else:
+            self.self_region = self_region
         print('Self region:', self.self_region)
-        # total space
-        #TODO: check this code
-        self.total_space = np.prod(self.feature_max - self.feature_low)
-        tmp_positive_space = len(true_df) * np.pi * self.self_region**2
-        tmp_self_overlap = 0
-        for i, row_1st in enumerate(self.true_df.itertuples(index=False, name=None)):
-            for j, row_2nd in enumerate(self.true_df.itertuples(index=False, name=None)):
-                if i != j:
-                    tmp_self_overlap += calculate_overlap(row_1st[1], self.self_region, row_2nd[1], self.self_region) / 2.0 # only count overlap for one of them
-        self.total_positive_space = tmp_positive_space - tmp_self_overlap
-        self.total_negative_space = self.total_space - self.total_positive_space   
-        print('Total space:', self.total_space, 'Total positive space:', self.total_positive_space, 'Total negative space:', self.total_negative_space) 
 
         # M.O Initialization
         self.pareto_fronts_log = []
@@ -81,7 +81,7 @@ class NSGAII_Negative_Selection():
 
     def initiate_population(self):
         # adds random parents and a batch of random "offspring"
-        self.population =  [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df, self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(self.pop_size * 2)]
+        self.population =  [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(self.pop_size * 2)]
         for detector in self.population:
             detector.compute_fitness(self.detector_set)
         self.store_min_and_max()
@@ -100,11 +100,13 @@ class NSGAII_Negative_Selection():
         self.reset_distances()'''
 
     def evolve_detector(self, stagnation_patience=10, pop_check_ratio=0.1):
+        #self.voronoi_points = calculate_voronoi_points(self.detector_set)
         self.initiate_population()
         # sort based on objective fitness
         pareto_fronts = self.non_domination_sorting()
-        best_f1 = 0
-        best_f2 = 99999
+        #best_f1 = 0
+        #best_f2 = 99999
+        best = 0.00000001
         stagnant = 0
         #mutation_change = mutation_change_rate * (self.feature_mean + self.feature_stdev * 3)
         #mutation_max = np.maxself.feature_mean + self.feature_stdev * 3
@@ -115,30 +117,53 @@ class NSGAII_Negative_Selection():
 
             self.pareto_fronts_log.append(pareto_fronts)
             mating_pool = self.create_mating_pool() 
+            #for detector in mating_pool:
+            #    print('Mating pool detector:', detector.vector, detector.radius, detector.f1, detector.f2)
             pair_wise_parents = self.crowded_tournament_selection() #TODO: why need to re-find the parents? Already have a mating pool
             offspring_pool = self.create_offspring_pool(pair_wise_parents)
    
             # mutate offspring
-            for offspring in offspring_pool:
+            '''for offspring in offspring_pool:
                 #print('offspring', offspring, offspring.distance_type)
                 # mutate (or move away from nearest)
                 step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
+                distance_to_self, nearest_self, closest_self = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
                 if distance_to_self < distance_to_detector:
-                    nearest_vector = nearest_self
+                    nearest_vector = nearest_self.copy()
                 else:
-                    nearest_vector = nearest_detector
+                    nearest_vector = nearest_detector.vector.copy()
                 offspring.move_away_from_nearest(nearest_vector, step, self.feature_low, self.feature_max)
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, offspring.vector, self.distance_type)
+                distance_to_self, nearest_self, closest_self = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
+                offspring.radius = np.min([distance_to_detector, distance_to_self])
+                offspring.compute_fitness(self.detector_set)'''
+            # mutate
+            for offspring in offspring_pool:
+                # half of the time move away from closest
+                if random.choice([True, False]):
+                    distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
+                    distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
+                    if distance_to_self < distance_to_detector:
+                        other_vector = nearest_self.copy()
+                    else:
+                        other_vector = nearest_detector.vector.copy()
+                    
+                    step = np.random.beta(a=1, b=4) # more likely to draw closer to 0
+                    offspring.move_away_from_nearest(other_vector, step, self.feature_low, self.feature_max)
+                # half of the time mutate normally
+                else:
+                    offspring.mutate(self.feature_low, self.feature_max)
+                
+                distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
+                distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
                 offspring.radius = np.min([distance_to_detector, distance_to_self])
                 offspring.compute_fitness(self.detector_set)
-            
             # create random detectors to fill up to 2*pop_size
             # 50 parents, 25 offspring, 25 random
+            #TODO: remove random individuals, these should be created by offsprings instead
             refill = self.pop_size * 2 - len(mating_pool) - len(offspring_pool)
-            random_pool = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.true_df.sample(int(pop_check_ratio * len(self.true_df))), self.self_region, self.detector_set, self.distance_type, compute_fitness) for _ in range(refill)]
+            random_pool = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(refill)]
             for rnd_detector in random_pool:
                 rnd_detector.compute_fitness(self.detector_set)
 
@@ -150,13 +175,19 @@ class NSGAII_Negative_Selection():
             #TODO: implement check for f2 as well
             #TODO: Important! need to do proper M.O convergence here (now it is just checking f1 convergence based on first detector in optimal pareto front)
             detector = self.pareto_fronts[0].individuals[0]
-            if True: #generations % 10 == 0:
-                print(detector.f1, np.max(detector.vector), np.min(detector.vector))
-            if abs(detector.f1 - best_f1) > 0.01:
-                best_f1 = detector.f1
+            # update stagnation (to decide on convergence)
+            detector = self.population[0]
+            detector.compute_fitness(self.detector_set)
+            print(best, detector.f1, np.max(detector.vector), np.min(detector.vector))
+            
+            if best != 0 and abs((detector.f1 - best) / best) > 0.001:
+                best = detector.f1
                 stagnant = 0
+                print('Stagnant reset')
             else:
+                print('Stagnant', stagnant)
                 stagnant += 1
+            
             generations += 1
 
         # TODO: add support for pop_check_ratio < 1
@@ -340,16 +371,19 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, help='Path to the dataset file')
     parser.add_argument('--detectorset', type=str, required=True, help='Path to the detectorset file')
     parser.add_argument('--amount', type=int, required=True, help='Amount of detectors to evolve')
+    parser.add_argument('--self_region', type=float, default=-1, help='Self region size')
     parser.add_argument('--self_region_rate', type=float, default=1.0, help='Rate to adjust the self region size')
+    parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
+
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
     true_training_df = pd.read_hdf(args.dataset, key='true_training')
-    true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
+    #true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
     true_test_df = pd.read_hdf(args.dataset, key='true_test')
 
     fake_training_df = pd.read_hdf(args.dataset, key='fake_training')
-    fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
+    #fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
     fake_test_df = pd.read_hdf(args.dataset, key='fake_test')
 
     if os.path.exists(args.detectorset):
@@ -360,10 +394,13 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, args.self_region_rate, true_training_df, dset, 'euclidean')
+    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, args.self_region_rate, true_training_df, dset, 'euclidean', args.self_region)
+    last_detector_negative_coverage = total_detector_hypersphere_volume(dset)
+    coverage_over_time = []
+    time0 = time.perf_counter()
 
     for i in range(args.amount):
-        pareto_fronts = nsga_nsa.evolve_detector(2, pop_check_ratio=1) 
+        pareto_fronts = nsga_nsa.evolve_detector(5, pop_check_ratio=1) 
         best_f1 = 0
         new_detector = None
         for i, front in enumerate(pareto_fronts):
@@ -377,29 +414,33 @@ def main():
         #new_detector = pareto_fronts[0].individuals[-1]
         print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2)        
         dset.detectors.append(new_detector)
-        print('Detectors:', len(dset.detectors))
-        time0 = time.perf_counter()
-        dset.save_to_file(args.detectorset)
-        '''if len(dset.detectors) % 1 == 0:
-            print('Detectors:', len(dset.detectors))
-            time0 = time.perf_counter()
-            true_detected, true_total = nsga.detect(true_df, dset, 9999)
-            fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
-            print(time.perf_counter() - time0)
-            print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
-            print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
-            if dim == 2:
-                visualize_2d(true_df, fake_df, dset, nsga.self_region)
-            elif dim == 3:
-                visualize_3d(true_df, fake_df, dset, nsga.self_region)'''
+
+        # check for convergence
+        if len(dset.detectors) % args.convergence_every == 0 and len(dset.detectors) > 0 and i > 0:
+            negative_space_coverage = total_detector_hypersphere_volume(dset)
+            print('Negative space coverage:', negative_space_coverage)            
+            coverage_over_time.append(negative_space_coverage)
+            if last_detector_negative_coverage > 0:
+                coverage_pct = (negative_space_coverage - last_detector_negative_coverage) / last_detector_negative_coverage
+                if coverage_pct > 0.005:
+                    print('Checking for convergence', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
+                    print(coverage_over_time)
+                    dset.save_to_file(args.detectorset)
+                else:
+                    print('Converged', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
+                    print(coverage_over_time)
+                    break
+            last_detector_negative_coverage = negative_space_coverage
 
     dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
     print('Detectors:', len(dset.detectors))
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
-    true_detected, true_total = nsga_nsa.detect(pd.concat([true_validation_df, true_test_df]), dset, 99999)
-    fake_detected, fake_total = nsga_nsa.detect(pd.concat([fake_validation_df, fake_test_df]), dset, 99999)
+    #real_test_set_df = pd.concat([true_validation_df, true_test_df])
+    #fake_test_set_df = pd.concat([fake_validation_df, fake_test_df])
+    true_detected, true_total = nsga_nsa.detect(true_test_df, dset, 9999)
+    fake_detected, fake_total = nsga_nsa.detect(fake_test_df, dset, 9999)
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     print(time.perf_counter() - time0)
@@ -410,11 +451,16 @@ def main():
     #detector_positions = np.array([detector.vector for detector in dset.detectors])
     #true_cluster = np.array(true_validation_df['vector'].tolist())
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
+    true_plot_df = true_training_df # real_test_set_df
+    fake_plot_df = fake_training_df
     if args.dim == 2:
-        visualize_2d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga_nsa.self_region)
+        visualize_2d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)
 
     if args.dim == 3:
-        visualize_3d(pd.concat([true_validation_df, true_test_df]), pd.concat([fake_validation_df, fake_test_df]), dset, nsga_nsa.self_region)    
+        visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)    
 
 if __name__ == "__main__":
     main()
+
+
+# python .\ga_nsa.py --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_10708.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_10708.json --amount=1 --convergence_every=100 --self_region=0.021507087160302772
