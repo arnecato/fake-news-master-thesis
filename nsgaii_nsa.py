@@ -183,9 +183,9 @@ class NSGAII_Negative_Selection():
             if best != 0 and abs((detector.f1 - best) / best) > 0.001:
                 best = detector.f1
                 stagnant = 0
-                print('Stagnant reset')
+                #print('Stagnant reset')
             else:
-                print('Stagnant', stagnant)
+                #print('Stagnant', stagnant)
                 stagnant += 1
             
             generations += 1
@@ -412,8 +412,9 @@ def main():
                         best_f1 = detector.f1
                         new_detector = detector
         #new_detector = pareto_fronts[0].individuals[-1]
-        print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2)        
-        dset.detectors.append(new_detector)
+        if new_detector is not None:
+            print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2)        
+            dset.detectors.append(new_detector)
 
         # check for convergence
         if len(dset.detectors) % args.convergence_every == 0 and len(dset.detectors) > 0 and i > 0:

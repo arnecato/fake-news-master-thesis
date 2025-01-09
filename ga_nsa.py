@@ -203,9 +203,9 @@ class NegativeSelectionGeneticAlgorithm():
             if best != 0 and abs((detector.f1 - best) / best) > 0.001:
                 best = detector.f1
                 stagnant = 0
-                print('Stagnant reset')
+                #print('Stagnant reset')
             else:
-                print('Stagnant', stagnant)
+                #print('Stagnant', stagnant)
                 stagnant += 1
             generations += 1
 
@@ -256,6 +256,7 @@ def main():
     parser.add_argument('--self_region_rate', type=float, default=1.0, help='Rate to adjust the self region size')
     parser.add_argument('--sample', type=int, default=-1, help='Number of samples to use from the dataset')
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
+    parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -291,7 +292,7 @@ def main():
             coverage_over_time.append(negative_space_coverage)
             if last_detector_negative_coverage > 0:
                 coverage_pct = (negative_space_coverage - last_detector_negative_coverage) / last_detector_negative_coverage
-                if coverage_pct > 0.005:
+                if coverage_pct > args.coverage:
                     print('Checking for convergence', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
                     print(coverage_over_time)
                     dset.save_to_file(args.detectorset)
@@ -355,3 +356,9 @@ if __name__ == "__main__":
     main()
 
 # python .\ga_nsa.py --dim=2 --dataset=dataset\ISOT\True_Fake_bert_umap_2dim_5600_8000.h5 --detectorset=model\detector\detectors_bert_2dim_5600_8000.json --amount=2100 --convergence_every=100 --self_region=0.0313902143297709
+
+# Total time to build model: 618.99655479996
+'''Detectors: 1000
+33.391967199975625
+Precision: 0.86306334699023 Recall 0.8523187052598817
+True/Real detected: 869 Total real/true: 6426 Fake detected: 5477 Total fake: 6426'''
