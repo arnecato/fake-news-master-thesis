@@ -39,7 +39,7 @@ def compute_fitness(self, detector_set):
                 if self_vector is not None and detector_vector is not None:
                     overlap += calculate_radius_overlap(self_vector, self.radius, detector_vector, detector.radius) #TODO: replace this!?
     #print('radius - overlap', self.radius, overlap, (self.radius - overlap))
-    self.f1 = self.radius - overlap
+    self.f1 = self.radius - overlap # TODO: REMOVE THIS /2
 
 class NegativeSelectionGeneticAlgorithm():
     def __init__(self, dim, pop_size, mutation_rate, self_region, self_region_rate, true_df, detector_set, distance_type):

@@ -60,7 +60,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     if postfix != '':
         postfix = '_' + postfix
     filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{umap_sample_size}_{sample_size}{postfix}.h5'
-    true_training_df.to_hdf(filepath, key='true_training', mode='a')
+    true_training_df.to_hdf(filepath, key='true_training', mode='w')
     #true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
     true_test_df.to_hdf(filepath, key='true_test', mode='a')
     fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
@@ -77,7 +77,6 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         f.attrs['sample_size'] = sample_size
 
     print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
-    return true_training_df, true_test_df, fake_training_df, fake_test_df
     
 def plot_file(filepath, true_keys, fake_keys):
     true_df = pd.read_hdf(filepath, key=true_keys[0])

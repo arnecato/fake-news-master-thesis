@@ -1,3 +1,21 @@
 dataset:
-  - cmd: >
-      python.exe .\umap_tool.py umap --filepath_true="dataset/ISOT/True_bert.h5" --filepath_fake="dataset/ISOT/Fake_bert.h5" --word_embedding='bert' --dim=2 --neighbors=3600 --sample_size=6000
+  name: 'ISOT'
+  cmd:
+  - echo "hello world"
+  - echo "another command"
+ 
+ga_nsa:
+  cmd:
+  - python .\ga_nsa.py --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_6000_test.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001 --sample=600
+
+  # .\ga_nsa.py --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_21417.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001
+
+
+jobs:
+  - name: "ga_nsa"
+  tool: "python .\ga_nsa.py"
+  dims: [2,3,4]
+  embeddings: ["bert", "word2vec", "tf-idf"]
+  dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
+  self_region --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_21417.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001"
+  # [ga_nsa,mo] x dim[2,3,4] x 

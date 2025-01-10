@@ -374,7 +374,7 @@ def main():
     parser.add_argument('--self_region', type=float, default=-1, help='Self region size')
     parser.add_argument('--self_region_rate', type=float, default=1.0, help='Rate to adjust the self region size')
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
-
+    parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -400,22 +400,26 @@ def main():
     time0 = time.perf_counter()
 
     for i in range(args.amount):
-        pareto_fronts = nsga_nsa.evolve_detector(5, pop_check_ratio=1) 
+        pareto_fronts = nsga_nsa.evolve_detector(3, pop_check_ratio=1) 
         best_f1 = 0
         new_detector = None
         for i, front in enumerate(pareto_fronts):
-            print('Front:', i)
+            #print('Front:', i)
             for detector in front.individuals:
-                print('Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
                 if i == 0: # pareto front 0 is the best front
+                    print('Front 0 - Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
                     if detector.f1 > best_f1:
                         best_f1 = detector.f1
                         new_detector = detector
         #new_detector = pareto_fronts[0].individuals[-1]
         if new_detector is not None:
             print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2)        
-            dset.detectors.append(new_detector)
-
+            if new_detector.f1 > 0:
+                dset.detectors.append(new_detector)
+            else:
+                print('Detector not added, f1 < 0! -----------------------------------------------------------------------------------------! ')
+        else:
+            print('No detector found ------------------------------------------------------------------------------------------------------- !')
         # check for convergence
         if len(dset.detectors) % args.convergence_every == 0 and len(dset.detectors) > 0 and i > 0:
             negative_space_coverage = total_detector_hypersphere_volume(dset)
@@ -423,7 +427,7 @@ def main():
             coverage_over_time.append(negative_space_coverage)
             if last_detector_negative_coverage > 0:
                 coverage_pct = (negative_space_coverage - last_detector_negative_coverage) / last_detector_negative_coverage
-                if coverage_pct > 0.005:
+                if coverage_pct > args.coverage:
                     print('Checking for convergence', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
                     print(coverage_over_time)
                     dset.save_to_file(args.detectorset)

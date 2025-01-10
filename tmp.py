@@ -1,12 +1,12 @@
 import pandas as pd
 import h5py
 
-import matplotlib.pyplot as plt
-
-# Load the dataset
-file_path = 'dataset/ISOT/True_BERT.h5'
-
-# Convert to DataFrame
-df = pd.read_hdf(file_path, key='df')
-
-print(df.head())
+filepath = f'dataset/ISOT/True_Fake_tf-idf_umap_{2}dim_{4000}_{4000}_{21417}.h5'
+# add metadata
+with h5py.File(filepath, 'a') as f:
+    # Add metadata at the file level
+    f.attrs['description'] = 'ISOT Dataset with True and Fake news'
+    f.attrs['word_embedding'] = 'tf-idf'
+    f.attrs['dim'] = 2
+    f.attrs['neighbors'] = 4000
+    f.attrs['sample_size'] = 21417
