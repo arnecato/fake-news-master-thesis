@@ -1,0 +1,14 @@
+{
+    "precision": 0.5950920245398773,
+    "recall": 0.8302209772798008,
+    "true_detected": 3630,
+    "true_total": 6426,
+    "fake_detected": 5335,
+    "fake_total": 6426,
+    "time_to_build": 88.1651639000047,
+    "detectors_count": 200,
+    "coverage_over_time": [
+        1722.841441778977,
+        1725.0415332682694
+    ]
+}

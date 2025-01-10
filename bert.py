@@ -1,4 +1,4 @@
-from transformers import BertTokenizer, BertModel
+from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel
 from transformers import DistilBertTokenizer, DistilBertModel
 import torch
 import time
@@ -9,8 +9,9 @@ torch.set_num_threads(8)
 
 class BERTVectorFactory():
     def __init__(self):
-        self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased')
-        self.model = DistilBertModel.from_pretrained('distilbert-base-cased')
+        self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        self.model = RobertaModel.from_pretrained('roberta-base')
+        #self.model = DistilBertModel.from_pretrained('distilbert-base-cased')
     
     def document_vector(self, text):
         encoded_input = self.tokenizer(text, return_tensors='pt')
@@ -69,10 +70,10 @@ class BERTVectorFactory():
     
 def main():
     bert_vfac = BERTVectorFactory()
-    bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/True.csv', 'dataset/ISOT/True_256_BERT.h5', ['title', 'text'], 256)
-    bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_256_BERT.h5', ['title', 'text'], 256)
-    #bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/True.csv', 'dataset/ISOT/True_BERT.h5', ['title', 'text'])
-    #bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_BERT.h5', ['title', 'text'])
+    #bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/True.csv', 'dataset/ISOT/True_256_BERT.h5', ['title', 'text'], 256)
+    #bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_256_BERT.h5', ['title', 'text'], 256)
+    bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/True.csv', 'dataset/ISOT/True_roberta.h5', ['title', 'text'])
+    bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_roberta.h5', ['title', 'text'])
 
     #tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     #model = BertModel.from_pretrained('bert-base-uncased')

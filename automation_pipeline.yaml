@@ -1,21 +1,40 @@
-dataset:
-  name: 'ISOT'
-  cmd:
-  - echo "hello world"
-  - echo "another command"
- 
-ga_nsa:
-  cmd:
-  - python .\ga_nsa.py --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_6000_test.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001 --sample=600
-
-  # .\ga_nsa.py --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_21417.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001
-
-
-jobs:
+model_training:
   - name: "ga_nsa"
-  tool: "python .\ga_nsa.py"
-  dims: [2,3,4]
-  embeddings: ["bert", "word2vec", "tf-idf"]
-  dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
-  self_region --dim=2 --dataset=dataset/ISOT/True_Fake_bert_umap_2dim_4000_4000_21417.h5 --detectorset=model\detector\detectors_bert_2dim_4000_4000_21417.json --amount=1 --convergence_every=100 --self_region=0.03 --coverage=0.001"
-  # [ga_nsa,mo] x dim[2,3,4] x 
+    tool: "python ./ga_nsa.py"
+    sample_size: -1
+    max_amount: 4000
+    convergence_every: 100
+    coverage: 0.001 # required increase in negative space coverage
+    dims:
+      - 2
+      - 3
+      - 4 
+    embeddings:
+      - bert
+      - roberta
+    self_region:
+      2: 0.03
+      3: 0.01
+      4: 0.005
+    dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
+    output_path: "model/detector/detectors_{embedding}_{dim}dim_4000_4000_21417_auto.json"
+  - name: "nsgaii_nsa"
+    tool: "python ./nsgaii_nsa.py"
+    sample_size: -1
+    max_amount: 4000
+    convergence_every: 100
+    coverage: 0.001 # required increase in negative space coverage
+    dims:
+      - 2
+      - 3
+      - 4 
+    embeddings:
+      - bert
+      - roberta
+    self_region:
+      2: 0.03
+      3: 0.01
+      4: 0.005
+    dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
+    output_path: "model/detector/detectors_{embedding}_{dim}dim_4000_4000_21417_nsgaii_auto.json"
+  

@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import umap
+from util import visualize_3d
+from detectors import DetectorSet
 import argparse
 import matplotlib.pyplot as plt
 import time
@@ -78,14 +80,17 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
 
     print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
     
-def plot_file(filepath, true_keys, fake_keys):
+def plot_file(filepath, true_keys, fake_keys, sample_size):
     true_df = pd.read_hdf(filepath, key=true_keys[0])
     for key in true_keys[1:]:
         true_df = pd.concat([true_df, pd.read_hdf(filepath, key=key)])
     fake_df = pd.read_hdf(filepath, key=fake_keys[0])
     for key in fake_keys[1:]:
         fake_df = pd.concat([fake_df, pd.read_hdf(filepath, key=key)])
-    
+    if sample_size != -1:
+        true_df = true_df.sample(sample_size, random_state=42)
+        fake_df = fake_df.sample(sample_size, random_state=42)
+
     # read metadata from hdf5 file
     with h5py.File(filepath, 'r') as f:
         word_embedding = f.attrs['word_embedding']
@@ -96,25 +101,28 @@ def plot_file(filepath, true_keys, fake_keys):
 
 def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys):
     # Extract the 2D vectors
-    true_vectors_2d = np.vstack(true_df['vector'].values)
+    true_vectors = np.vstack(true_df['vector'].values)
     #true_validation_df = pd.concat([true_validation_df, true_test_df])
     #true_validation_df_vectors_2d = np.vstack(true_validation_df['vector'].values)
-    fake_vectors_2d = np.vstack(fake_df['vector'].values)
+    fake_vectors = np.vstack(fake_df['vector'].values)
     #fake_validation_df = pd.concat([fake_validation_df, fake_test_df])
     #fake_validation_df_vectors_2d = np.vstack(fake_validation_df['vector'].values)
                                             
-
-    # Plot the 2D vectors
-    plt.figure(figsize=(10, 8))
-    print(true_vectors_2d.shape, fake_vectors_2d.shape)
-    plt.scatter(true_vectors_2d[:, 0], true_vectors_2d[:, 1], s=5, color='blue', alpha=0.25)
-    plt.scatter(fake_vectors_2d[:, 0], fake_vectors_2d[:, 1], s=5, color='red', alpha=0.25)
-    #plt.scatter(true_validation_df_vectors_2d[:, 0], true_validation_df_vectors_2d[:, 1], s=5, color='blue', alpha=0.25)
-    #plt.scatter(fake_validation_df_vectors_2d[:, 0], fake_validation_df_vectors_2d[:, 1], s=5, color='red', alpha=0.25)
-    plt.title(f'UMAP {word_embedding} - {neighbors} neighbors - {sample_size} samples - {true_keys} {fake_keys}')
-    plt.xlabel('UMAP 1')
-    plt.ylabel('UMAP 2')
-    plt.show()
+    if fake_vectors.shape[1] == 2:
+        # Plot the 2D vectors
+        plt.figure(figsize=(10, 8))
+        print(true_vectors.shape, fake_vectors.shape)
+        plt.scatter(true_vectors[:, 0], true_vectors[:, 1], s=5, color='blue', alpha=0.25)
+        plt.scatter(fake_vectors[:, 0], fake_vectors[:, 1], s=5, color='red', alpha=0.25)
+        #plt.scatter(true_validation_df_vectors_2d[:, 0], true_validation_df_vectors_2d[:, 1], s=5, color='blue', alpha=0.25)
+        #plt.scatter(fake_validation_df_vectors_2d[:, 0], fake_validation_df_vectors_2d[:, 1], s=5, color='red', alpha=0.25)
+        plt.title(f'UMAP {word_embedding} - {neighbors} neighbors - {sample_size} samples - {true_keys} {fake_keys}')
+        plt.xlabel('UMAP 1')
+        plt.ylabel('UMAP 2')
+        plt.show()
+    elif fake_vectors.shape[1] == 3:
+        dset = DetectorSet([])
+        visualize_3d(true_df, fake_df, dset, 0.01)
 
 
 def main():
@@ -125,7 +133,7 @@ def main():
     umap_parser.add_argument('--filepath_true', type=str, required=True, help='Path to the input HDF5 file for true news')
     umap_parser.add_argument('--filepath_fake', type=str, required=True, help='Path to the input HDF5 file for fake news')
     umap_parser.add_argument('--dim', type=int, required=True, help='Number of dimensions for UMAP')
-    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert', 'word2vec'], help='Type of word embedding')
+    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert', 'word2vec', 'roberta'], help='Type of word embedding')
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
     umap_parser.add_argument('--min_dist', type=float, default=0.0, help='Minimum distance for UMAP')
@@ -136,6 +144,7 @@ def main():
     plot_parser.add_argument('--filepath', type=str, required=True, help='Path to the input HDF5 file for plotting')
     plot_parser.add_argument('--true_keys', type=str, default='true_training,true_test', help='Comma-separated list of keys for true data')
     plot_parser.add_argument('--fake_keys', type=str, default='fake_training,fake_test', help='Comma-separated list of keys for fake data')
+    plot_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
 
     args = parser.parse_args()
 
@@ -143,7 +152,7 @@ def main():
     if args.command == 'umap':
         reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, umap_sample_size=args.umap_sample_size, min_dist=args.min_dist, postfix=args.postfix, metric=args.metric)
     elif args.command == 'plot':
-        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','))
+        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size)
     else:
         parser.print_help()
 

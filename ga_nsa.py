@@ -8,6 +8,7 @@ import os
 from typing import List
 from detectors import Detector, DetectorSet
 from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume
+import json
 
 
 # 2D self region ---
@@ -257,6 +258,7 @@ def main():
     parser.add_argument('--sample', type=int, default=-1, help='Number of samples to use from the dataset')
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
+    parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -336,7 +338,7 @@ def main():
     fake_detected, fake_total = nsga.detect(fake_test_df, dset, 9999)
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
-    print(time.perf_counter() - time0)
+    time_to_infer = time.perf_counter() - time0
     print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
     print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
 
@@ -346,11 +348,52 @@ def main():
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
     true_plot_df = true_training_df #true_test_df # real_test_set_df
     fake_plot_df = fake_training_df
-    if args.dim == 2:
-        visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
+    # only plot if not in auto mode
+    if args.auto == 0:
+        if args.dim == 2:
+            visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
 
-    if args.dim == 3:
-        visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
+        if args.dim == 3:
+            visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
+    # we are in auto mode - generate test results
+    elif args.auto == 1:
+        true_detected_list = []
+        fake_detected_list = []
+        precision_list = []
+        recall_list = []
+        negative_space_coverage_list = []
+        for i in range(100, len(dset.detectors), 100):
+            tmp_dset = DetectorSet(dset.detectors[:i])
+            negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
+            true_detected, true_total = nsga.detect(true_test_df, dset, i)
+            fake_detected, fake_total = nsga.detect(fake_test_df, dset, i)
+            true_detected_list.append(true_detected)
+            fake_detected_list.append(fake_detected)
+            precision_list.append(precision(fake_detected, true_detected))
+            recall_list.append(recall(fake_detected, fake_total - fake_detected))
+            print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
+
+        results = {
+            "precision": precision(fake_detected, true_detected),
+            "recall": recall(fake_detected, fake_total - fake_detected),
+            "true_detected": true_detected,
+            "true_total": true_total,
+            "fake_detected": fake_detected,
+            "fake_total": fake_total,
+            "negative_space_coverage": total_detector_hypersphere_volume(dset),
+            "time_to_build": time_to_build,
+            "detectors_count": len(dset.detectors),
+            "precision_list": precision_list,
+            "recall_list": recall_list,
+            "true_detected_list": true_detected_list,
+            "fake_detected_list": fake_detected_list,
+            "negative_space_coverage_list": negative_space_coverage_list,
+            "time_to_infer": time_to_infer
+        }
+
+        experiment_filepath = args.detectorset.replace('.json', '') + '_experiment_results.json'
+        with open(experiment_filepath, 'w') as f:
+            json.dump(results, f, indent=4)
 
 if __name__ == "__main__":
     main()

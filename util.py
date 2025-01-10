@@ -47,14 +47,15 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
     fake_cluster = np.array(fake_df['vector'].tolist())
 
     # 3D Visualization
-    detector_scatter = go.Scatter3d(
-        x=detector_positions[:, 0],
-        y=detector_positions[:, 1],
-        z=detector_positions[:, 2],
-        mode='markers',
-        marker=dict(size=5, color='green'),
-        name='Detectors'
-    )
+    if len(detector_set.detectors) > 0:
+        detector_scatter = go.Scatter3d(
+            x=detector_positions[:, 0],
+            y=detector_positions[:, 1],
+            z=detector_positions[:, 2],
+            mode='markers',
+            marker=dict(size=5, color='green'),
+            name='Detectors'
+        )
 
     true_scatter = go.Scatter3d(
         x=true_cluster[:, 0],
@@ -74,19 +75,20 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
         name='Fake'
     )
 
-    # Create spheres around detectors
+    # Create spheres 
     spheres = []
-    for detector in detector_set.detectors:
-        x, y, z = create_sphere(detector.vector, detector.radius)
-        spheres.append(go.Mesh3d(
-            x=x.flatten(),
-            y=y.flatten(),
-            z=z.flatten(),
-            opacity=0.3,  # Transparency
-            color='green',
-            alphahull=0,
-            name='Detector Sphere'
-        ))
+    if len(detector_set.detectors) > 0:
+        for detector in detector_set.detectors:
+            x, y, z = create_sphere(detector.vector, detector.radius)
+            spheres.append(go.Mesh3d(
+                x=x.flatten(),
+                y=y.flatten(),
+                z=z.flatten(),
+                opacity=0.3,  # Transparency
+                color='green',
+                alphahull=0,
+                name='Detector Sphere'
+            ))
     for self_sample in true_cluster:
         x, y, z = create_sphere(self_sample, self_region)
         spheres.append(go.Mesh3d(
@@ -100,7 +102,10 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
         ))
 
     # Create the figure and add the scatter plots and spheres
-    fig = go.Figure(data=[detector_scatter, true_scatter, fake_scatter] + spheres)
+    if len(detector_set.detectors) > 0:
+        fig = go.Figure(data=[detector_scatter, true_scatter, fake_scatter] + spheres)
+    else:
+        fig = go.Figure(data=[true_scatter, fake_scatter] + spheres)
     #fig = go.Figure(data=[true_scatter, fake_scatter])
 
     # Show the plot
