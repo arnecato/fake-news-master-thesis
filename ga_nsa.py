@@ -259,6 +259,7 @@ def main():
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
+    parser.add_argument('--experiment', type=int, default=-1, help='Expirement number')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -388,10 +389,11 @@ def main():
             "true_detected_list": true_detected_list,
             "fake_detected_list": fake_detected_list,
             "negative_space_coverage_list": negative_space_coverage_list,
-            "time_to_infer": time_to_infer
+            "time_to_infer": time_to_infer,
+            "self_region": nsga.self_region,
         }
 
-        experiment_filepath = args.detectorset.replace('.json', '') + '_experiment_results.json'
+        experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
         with open(experiment_filepath, 'w') as f:
             json.dump(results, f, indent=4)
 

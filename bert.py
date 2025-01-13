@@ -1,16 +1,25 @@
 from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel
-from transformers import DistilBertTokenizer, DistilBertModel
+from transformers import DistilBertTokenizer, DistilBertModel, BertTokenizer, BertModel
 import torch
 import time
 import pandas as pd
 import numpy as np
+import argparse
+import os
 
 torch.set_num_threads(8)
 
 class BERTVectorFactory():
-    def __init__(self):
-        self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        self.model = RobertaModel.from_pretrained('roberta-base')
+    def __init__(self, model_name='roberta-base'):
+        if model_name == 'roberta-base':
+            self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
+            self.model = RobertaModel.from_pretrained(model_name)
+        elif model_name == 'bert-base-cased':
+            self.tokenizer = BertTokenizer.from_pretrained(model_name)
+            self.model = BertModel.from_pretrained(model_name)
+        elif model_name == 'distilbert-base-cased':
+            self.tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+            self.model = DistilBertModel.from_pretrained(model_name)
         #self.model = DistilBertModel.from_pretrained('distilbert-base-cased')
     
     def document_vector(self, text):
@@ -69,11 +78,23 @@ class BERTVectorFactory():
         return pd.read_hdf(load_filepath, key='df')
     
 def main():
-    bert_vfac = BERTVectorFactory()
+    parser = argparse.ArgumentParser(description='BERT Vectorization')
+    parser.add_argument('--model_name', type=str, required=True, choices=['bert-base-cased','distilbert-base-cased', 'roberta-base'], help='Path to the true news CSV file')
+    args = parser.parse_args()
+    bert_vfac = BERTVectorFactory(model_name=args.model_name)
     #bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/True.csv', 'dataset/ISOT/True_256_BERT.h5', ['title', 'text'], 256)
     #bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_256_BERT.h5', ['title', 'text'], 256)
-    bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/True.csv', 'dataset/ISOT/True_roberta.h5', ['title', 'text'])
-    bert_vfac.vectorize_dataframe_using_batches('dataset/ISOT/Fake.csv', 'dataset/ISOT/Fake_roberta.h5', ['title', 'text'])
+    true_file_path = f'dataset/ISOT/True_{args.model_name}.h5'
+    fake_file_path = f'dataset/ISOT/Fake_{args.model_name}.h5'
+
+    if os.path.exists(true_file_path):
+        print(f"{true_file_path} already exists. Skipping vectorization for True news.")
+    else:
+        bert_vfac.vectorize_dataframe_using_batches(f'dataset/ISOT/True.csv', true_file_path, ['title', 'text'])
+    if os.path.exists(fake_file_path):
+        print(f"{fake_file_path} already exists. Skipping vectorization for Fake news.")
+    else:
+        bert_vfac.vectorize_dataframe_using_batches(f'dataset/ISOT/Fake.csv', fake_file_path, ['title', 'text'])
 
     #tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     #model = BertModel.from_pretrained('bert-base-uncased')

@@ -8,6 +8,7 @@ import argparse
 import matplotlib.pyplot as plt
 import time
 import h5py
+import os
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
@@ -133,7 +134,7 @@ def main():
     umap_parser.add_argument('--filepath_true', type=str, required=True, help='Path to the input HDF5 file for true news')
     umap_parser.add_argument('--filepath_fake', type=str, required=True, help='Path to the input HDF5 file for fake news')
     umap_parser.add_argument('--dim', type=int, required=True, help='Number of dimensions for UMAP')
-    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['glove', 'bert', 'word2vec', 'roberta'], help='Type of word embedding')
+    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['distilbert-base-cased', 'roberta-base', 'bert-base-cased', 'fasttext'], help='Type of word embedding')
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
     umap_parser.add_argument('--min_dist', type=float, default=0.0, help='Minimum distance for UMAP')

@@ -377,6 +377,8 @@ def main():
     parser.add_argument('--self_region_rate', type=float, default=1.0, help='Rate to adjust the self region size')
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
+    parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
+    parser.add_argument('--experiment', type=int, default=-1, help='Expirement number')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
@@ -410,7 +412,7 @@ def main():
             #print('Front:', i)
             for detector in front.individuals:
                 if i == 0: # pareto front 0 is the best front
-                    print('Front 0 - Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
+                    #print('Front 0 - Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
                     if detector.f1 > best_f1:
                         best_f1 = detector.f1
                         new_detector = detector
@@ -498,10 +500,11 @@ def main():
             "true_detected_list": true_detected_list,
             "fake_detected_list": fake_detected_list,
             "negative_space_coverage_list": negative_space_coverage_list,
-            "time_to_infer": time_to_infer
+            "time_to_infer": time_to_infer,
+            "self_region": nsga_nsa.self_region
         }
 
-        experiment_filepath = args.detectorset.replace('.json', '') + '_experiment_results.json'
+        experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
         with open(experiment_filepath, 'w') as f:
             json.dump(results, f, indent=4)  
 
