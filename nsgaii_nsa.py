@@ -2,13 +2,14 @@ import numpy as np
 import random
 import itertools
 from detectors import Detector, DetectorSet
-from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume, calculate_self_region
+from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume, calculate_self_region, hypersphere_volume, hypersphere_overlap
 import pandas as pd
 import os
 import time
 import argparse
 import json
 import h5py
+import math
 
 '''
 NSGAII part based on Deb et al. (2001)
@@ -17,18 +18,20 @@ NSGAII part based on Deb et al. (2001)
 
 def compute_fitness(self, detector_set):
     ''' Fitness function to be used by the detector '''
-    overlap = 0
+    overlap_volume = 0
+    dim = len(self.vector)
+    volume = hypersphere_volume(self.radius, dim)
     closest_detector = None
     closest_distance = float('inf')
     if detector_set is not None:
         for detector in detector_set.detectors:
             if not np.array_equal(self.vector, detector.vector):          
-                overlap += calculate_radius_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
+                overlap_volume += hypersphere_overlap(self.radius, detector.radius, math.dist(self.vector, detector.vector), dim) #calculate_radius_overlap(self.vector, self.radius, detector.vector, detector.radius) #TODO: check for issue with negative radius - impact?
                 distance = euclidean_distance(self.vector, detector.vector, 0, detector.radius)
                 if distance < closest_distance:
                     closest_distance = distance
                     closest_detector = detector
-    self.f1 = self.radius - overlap 
+    self.f1 = volume - overlap_volume 
     if closest_detector is not None:
         self.f2 = 1 / abs(closest_detector.radius)
     else:

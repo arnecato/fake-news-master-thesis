@@ -30,7 +30,7 @@ import h5py
 # bert 3600_6000 self region = 0.16171675445897507
 
 def compute_fitness(self, detector_set):
-    overlap = 0
+    overlap_volume = 0
     dim = len(self.vector)
     volume = hypersphere_volume(self.radius, dim)
     if detector_set is not None:
@@ -40,9 +40,9 @@ def compute_fitness(self, detector_set):
                 self_vector = self.vector.copy()
                 detector_vector = detector.vector.copy()
                 if self_vector is not None and detector_vector is not None:
-                    overlap += hypersphere_overlap(self.radius, detector.radius, math.dist(self_vector, detector_vector), dim) #calculate_radius_overlap(self_vector, self.radius, detector_vector, detector.radius) #TODO: replace this!?
+                    overlap_volume += hypersphere_overlap(self.radius, detector.radius, math.dist(self_vector, detector_vector), dim) #calculate_radius_overlap(self_vector, self.radius, detector_vector, detector.radius) #TODO: replace this!?
     #print('radius - overlap', self.radius, overlap, (self.radius - overlap))
-    self.f1 = volume - overlap #self.radius - overlap # TODO: REMOVE THIS /2
+    self.f1 = volume - overlap_volume #self.radius - overlap # TODO: REMOVE THIS /2
 
 class NegativeSelectionGeneticAlgorithm():
     def __init__(self, dim, pop_size, mutation_rate, self_region, self_region_rate, true_df, detector_set, distance_type):
