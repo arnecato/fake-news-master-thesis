@@ -364,30 +364,23 @@ def main():
     #fake_cluster = np.array(fake_validation_df['vector'].tolist())
     true_plot_df = true_training_df #true_test_df # real_test_set_df
     fake_plot_df = fake_training_df
-    # only plot if not in auto mode
-    if args.auto == 0:
-        if args.dim == 2:
-            visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
-
-        if args.dim == 3:
-            visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
+   
     # we are in auto mode - generate test results
-    elif args.auto == 1:
-        true_detected_list = []
-        fake_detected_list = []
-        precision_list = []
-        recall_list = []
-        negative_space_coverage_list = []
-        for i in range(100, len(dset.detectors), 100):
-            tmp_dset = DetectorSet(dset.detectors[:i])
-            negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
-            true_detected, true_total = nsga.detect(true_test_df, dset, i)
-            fake_detected, fake_total = nsga.detect(fake_test_df, dset, i)
-            true_detected_list.append(true_detected)
-            fake_detected_list.append(fake_detected)
-            precision_list.append(precision(fake_detected, true_detected))
-            recall_list.append(recall(fake_detected, fake_total - fake_detected))
-            print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
+    true_detected_list = []
+    fake_detected_list = []
+    precision_list = []
+    recall_list = []
+    negative_space_coverage_list = []
+    for i in range(100, len(dset.detectors), 100):
+        tmp_dset = DetectorSet(dset.detectors[:i])
+        negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
+        true_detected, true_total = nsga.detect(true_test_df, dset, i)
+        fake_detected, fake_total = nsga.detect(fake_test_df, dset, i)
+        true_detected_list.append(true_detected)
+        fake_detected_list.append(fake_detected)
+        precision_list.append(precision(fake_detected, true_detected))
+        recall_list.append(recall(fake_detected, fake_total - fake_detected))
+        print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
 
     results = {
         "precision": precision(fake_detected, true_detected),
@@ -412,6 +405,14 @@ def main():
     with open(experiment_filepath, 'w') as f:
         json.dump(results, f, indent=4)
 
+     # only plot if not in auto mode
+    if args.auto == 0:
+        if args.dim == 2:
+            visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)
+
+        if args.dim == 3:
+            visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)    
+            
 if __name__ == "__main__":
     main()
 
