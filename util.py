@@ -192,7 +192,22 @@ def fast_cosine_distance_with_radius(a, b, a_radius, b_radius, feature_index):
     # Ensure the distance is non-negative
     return adjusted_distance
 
-def hypersphere_volume(radius, dimension):    
+def calculate_self_region(self_points):
+    self_distances = []
+    for self_point_1 in self_points: #.itertuples(index=False, name=None):
+        closest_distance = 999999.0
+        for self_point_2 in self_points: #.itertuples(index=False, name=None):
+            distance = euclidean_distance(self_point_1, self_point_2, 0, 0)
+            if distance < closest_distance and distance != 0:
+                closest_distance = distance
+        #print(f'distance found {closest_distance}', row_1st[1], row_2nd[1])
+        if distance != 0: # avoid adding distance to itself
+            self_distances.append(closest_distance)
+    return np.mean(self_distances) 
+
+def hypersphere_volume(radius, dimension):
+    if dimension == 1:
+        return 2 * radius
     return (math.pi ** (dimension / 2) * radius ** dimension) / math.gamma((dimension / 2) + 1)
 
 def hypersphere_overlap(r1, r2, distance, dimension):
@@ -209,7 +224,8 @@ def hypersphere_overlap(r1, r2, distance, dimension):
         return 0.0  # No overlap
     elif distance <= abs(r1 - r2):
         return hypersphere_volume(min(r1, r2), dimension)  # One is completely inside the other
-    
+    if dimension == 1:  # Overlap length for line segments
+        return min(r1 + r2 - distance, min(r1, r2))
     if dimension == 2:  # Overlap area for circles
         part1 = r1**2 * math.acos((distance**2 + r1**2 - r2**2) / (2 * distance * r1))
         part2 = r2**2 * math.acos((distance**2 + r2**2 - r1**2) / (2 * distance * r2))

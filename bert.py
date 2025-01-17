@@ -50,7 +50,7 @@ class BERTVectorFactory():
         # Load the dataframe and concatenate the selected columns into a 'text' field
         df = pd.read_csv(load_filepath)
         df = df[columns]
-        df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str))[:512], axis=1) # TODO: important! Need to let spacy tokenize this first! OR? Should it just interepreting the full text alone?
+        df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str))[:512], axis=1) 
         df = df[['text']]
         time0 = time.perf_counter()
         # Get the list of texts from the DataFrame
@@ -66,7 +66,7 @@ class BERTVectorFactory():
     def vectorize_dataframe_first_characters(self, load_filepath, save_filepath, columns, first_characters):
         df = pd.read_csv(load_filepath)
         df = df[columns]
-        df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str))[:512], axis=1)
+        df['text'] = df.apply(lambda row: ' . '.join(row.values.astype(str)), axis=1)
         df = df[['text']]
         time0 = time.perf_counter()
 

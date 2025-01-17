@@ -1,20 +1,21 @@
 document_embedding:
   models:
       - "python ./bert.py --model_name=bert-base-cased"
-      #- "python ./bert.py --model_name=distilbert-base-cased"
-      #- "python ./bert.py --model_name=roberta-base"
-      #- "python ./fast_text.py"
+      - "python ./bert.py --model_name=distilbert-base-cased"
+      - "python ./bert.py --model_name=roberta-base"
+      - "python ./fast_text.py"
 
 umap_dimensionality_reduction:
   dims:
+    - 1
     - 2
     - 3
     - 4
   embeddings:
     - bert-base-cased
-    #- distilbert-base-cased
-    #- roberta-base
-    #- fasttext
+    - distilbert-base-cased
+    - roberta-base
+    - fasttext
   tool: "python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_{embedding}.h5 --filepath_fake=dataset/ISOT/Fake_{embedding}.h5 --word_embedding={embedding} --dim={dim} --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0"
 
 model_training:
@@ -33,10 +34,6 @@ model_training:
       - distilbert-base-cased
       - bert-base-cased
       - roberta-base
-    self_region:
-      2: -1 #0.03
-      3: -1 #0.01
-      4: -1 #0.005
     dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
     output_path: "model/detector/detectors_{embedding}_{dim}dim_4000_4000_21417_nsgaii_auto.json"
   - name: "ga_nsa"

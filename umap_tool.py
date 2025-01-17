@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import umap
-from util import visualize_3d
+from util import visualize_3d, calculate_self_region
 from detectors import DetectorSet
 import argparse
 import matplotlib.pyplot as plt
@@ -12,74 +12,115 @@ import os
 import warnings
 warnings.filterwarnings('ignore', category=pd.io.pytables.PerformanceWarning)
 
+def euclidean_distance(a, b, a_radius, b_radius):
+    return np.linalg.norm(a - b) - a_radius - b_radius
+
+def save_self_region():
+    dims = [2,3,4]
+    embeddings = ['bert-base-cased', 'fasttext'] #'distilbert-base-cased', 
+    # True_Fake_bert-base-cased_umap_4dim_4000_4000_21417.h5
+    for dim in dims:
+        for embedding in embeddings:
+            filepath = f'dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5'
+            print(filepath)
+            true_training_df = pd.read_hdf(filepath, key='true_training')
+            self_points = np.array(true_training_df['vector'].tolist())
+            self_region = calculate_self_region(self_points)
+            with h5py.File(filepath, 'a') as f:
+                f.attrs['self_region'] = self_region
+            print('Self region:', self_region, 'File:', filepath)
+
 def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embedding, sample_size=1000, umap_sample_size=1000, min_dist=0.0, postfix='', metric='euclidean'):
     time0 = time.perf_counter()
-    true_df = pd.read_hdf(filepath_true, key='df') 
-    fake_df = pd.read_hdf(filepath_fake, key='df')
 
-    if sample_size == -1:
-        sample_size = len(true_df)
-    print('Sample size:', sample_size)
-    true_df = true_df.sample(sample_size, random_state=42)
-    fake_df = fake_df.sample(sample_size, random_state=42)
-    if umap_sample_size == -1:
-        umap_sample_size = sample_size
-
-    #true_df['vector'] = true_df['vector'].apply(lambda x: x / np.linalg.norm(x))
-    # TODO: REMOVE HARDCODING
-    #true_df = true_df.sample(8000, random_state=42)
-    print('Metrics:', metric, 'Min dist:', min_dist, 'Neighbors:', neighbors)
-    true_training_df, true_test_df = train_test_split(true_df, test_size=0.3, random_state=42)
-    print('True training size:', len(true_training_df), 'Test size:', len(true_test_df))
-    fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.3, random_state=42)
-    print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
-    # prepare dimension reducer
-    true_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)])
-    print('UMAP fitting size:', len(true_fake_umap_fitting_df))
-    dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
-    #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
-    dimension_reducer.fit(np.vstack(true_fake_umap_fitting_df['vector'].values))
-    # reduce dimensions of all training data
-    reduced_true_training_vectors = dimension_reducer.transform(np.vstack(true_training_df['vector'].values))
-    true_training_df['vector'] =  [np.array(vec) for vec in reduced_true_training_vectors]
-    reduced_true_test_vectors = dimension_reducer.transform(np.vstack(true_test_df['vector'].values))
-    true_test_df['vector'] =  [np.array(vec) for vec in reduced_true_test_vectors]
-    # reduce dimensions for all fake data
-    reduced_fake_training_vectors = dimension_reducer.transform(np.vstack(fake_training_df['vector'].values))
-    fake_training_df['vector'] = [np.array(vec) for vec in reduced_fake_training_vectors]
-    reduced_fake_test_vectors = dimension_reducer.transform(np.vstack(fake_test_df['vector'].values))
-    fake_test_df['vector'] = [np.array(vec) for vec in reduced_fake_test_vectors]
-
-    #fake_df = pd.read_hdf(filepath_fake, key='df')
-    #fake_df['vector'] = fake_df['vector'].apply(lambda x: x / np.linalg.norm(x))
-    # all fake data can be transformed at once
-    #reduced_vectors = dimension_reducer.transform(np.vstack(fake_df['vector'].values))
-    #fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
     
-
-    # save to file
+    # check if file exists  
+    # save to filepath
     if sample_size == -1:
         sample_size = 'all'
     if postfix != '':
         postfix = '_' + postfix
     filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{umap_sample_size}_{sample_size}{postfix}.h5'
-    true_training_df.to_hdf(filepath, key='true_training', mode='w')
-    #true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
-    true_test_df.to_hdf(filepath, key='true_test', mode='a')
-    fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
-    #fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
-    fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
-    
-    # add metadata
-    with h5py.File(filepath, 'a') as f:
-        # Add metadata at the file level
-        f.attrs['description'] = 'ISOT Dataset with True and Fake news'
-        f.attrs['word_embedding'] = word_embedding
-        f.attrs['dim'] = dim
-        f.attrs['neighbors'] = neighbors
-        f.attrs['sample_size'] = sample_size
+    if not os.path.exists(filepath):
+        true_df = pd.read_hdf(filepath_true, key='df') 
+        fake_df = pd.read_hdf(filepath_fake, key='df')
+        true_df['label'] = 'true'
+        fake_df['label'] = 'false'
+        
+        if sample_size == -1:
+            sample_size = len(true_df)
+        print('Sample size:', sample_size)
+        true_df = true_df.sample(sample_size, random_state=42)
+        fake_df = fake_df.sample(sample_size, random_state=42)
+        if umap_sample_size == -1:
+            umap_sample_size = sample_size
 
-    print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
+        #true_df['vector'] = true_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+        # TODO: REMOVE HARDCODING
+        #true_df = true_df.sample(8000, random_state=42)
+        print('Metrics:', metric, 'Min dist:', min_dist, 'Neighbors:', neighbors)
+        true_training_df, true_test_df = train_test_split(true_df, test_size=0.3, random_state=42)
+        print('True training size:', len(true_training_df), 'Test size:', len(true_test_df))
+        fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.3, random_state=42)
+        print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
+        # prepare dimension reducer
+        # CHECK OUT THIS CODE - USE FAKE NEWS OR NOT!?
+        only_true_not_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
+        print('UMAP fitting size:', len(only_true_not_fake_umap_fitting_df))
+        dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
+        #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
+        dimension_reducer.fit(np.vstack(only_true_not_fake_umap_fitting_df['vector'].values))
+        # reduce dimensions of all training data
+        true_fake_training_df = pd.concat([true_training_df, fake_training_df])
+        reduced_true_fake_training_vectors = dimension_reducer.transform(np.vstack(true_fake_training_df['vector'].values))
+        true_fake_training_df['vector'] =  [np.array(vec) for vec in reduced_true_fake_training_vectors]
+        
+        true_training_df['vector'] = true_fake_training_df.loc[true_fake_training_df['label'] == 'true', 'vector']
+        fake_training_df['vector'] = true_fake_training_df.loc[true_fake_training_df['label'] == 'false', 'vector']
+
+
+        true_fake_test_df = pd.concat([true_test_df, fake_test_df])
+        reduced_true_fake_test_vectors = dimension_reducer.transform(np.vstack(true_fake_test_df['vector'].values))
+        true_fake_test_df['vector'] =  [np.array(vec) for vec in reduced_true_fake_test_vectors]
+        true_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'true', 'vector']
+        fake_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'false', 'vector']
+        
+        # reduce dimensions for all fake data
+        #reduced_fake_training_vectors = dimension_reducer.transform(np.vstack(fake_training_df['vector'].values))
+        #fake_training_df['vector'] = [np.array(vec) for vec in reduced_fake_training_vectors]
+        #reduced_fake_test_vectors = dimension_reducer.transform(np.vstack(fake_test_df['vector'].values))
+        #fake_test_df['vector'] = [np.array(vec) for vec in reduced_fake_test_vectors]
+
+        #fake_df = pd.read_hdf(filepath_fake, key='df')
+        #fake_df['vector'] = fake_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+        # all fake data can be transformed at once
+        #reduced_vectors = dimension_reducer.transform(np.vstack(fake_df['vector'].values))
+        #fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
+        
+        true_training_df.to_hdf(filepath, key='true_training', mode='w')
+        #true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
+        true_test_df.to_hdf(filepath, key='true_test', mode='a')
+        fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
+        #fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
+        fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
+        
+        # find self region radius
+        self_points = np.array(true_training_df['vector'].tolist())
+        self_region = calculate_self_region(self_points)
+
+        # add metadata
+        with h5py.File(filepath, 'a') as f:
+            # Add metadata at the file level
+            f.attrs['description'] = 'ISOT Dataset with True and Fake news'
+            f.attrs['word_embedding'] = word_embedding
+            f.attrs['dim'] = dim
+            f.attrs['neighbors'] = neighbors
+            f.attrs['sample_size'] = sample_size
+            f.attrs['self_region'] = self_region
+
+        print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
+    else:
+        print('File exists:', filepath, 'Skipping processing')
     
 def plot_file(filepath, true_keys, fake_keys, sample_size):
     true_df = pd.read_hdf(filepath, key=true_keys[0])
@@ -162,3 +203,6 @@ def main():
 # python.exe .\umap_tool.py plot --filepath="dataset/ISOT/True_Fake_bert_umap_2dim_700_1000.h5"
 if __name__ == '__main__':
     main()
+    #save_self_region()
+
+

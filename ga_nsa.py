@@ -7,9 +7,9 @@ import argparse
 import os
 from typing import List
 from detectors import Detector, DetectorSet
-from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume
+from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume, calculate_self_region
 import json
-
+import h5py
 
 # 2D self region ---
 # bert long 3600_6000 self region = 0.04305774469300755
@@ -31,6 +31,8 @@ import json
 
 def compute_fitness(self, detector_set):
     overlap = 0
+    dim = len(self.vector)
+    volume = hypersphere_volume(self.radius, dim)
     if detector_set is not None:
         for detector in detector_set.detectors:
             if not np.array_equal(self.vector, detector.vector):    
@@ -38,9 +40,9 @@ def compute_fitness(self, detector_set):
                 self_vector = self.vector.copy()
                 detector_vector = detector.vector.copy()
                 if self_vector is not None and detector_vector is not None:
-                    overlap += calculate_radius_overlap(self_vector, self.radius, detector_vector, detector.radius) #TODO: replace this!?
+                    overlap += hypersphere_overlap(self.radius, detector.radius, math.dist(self_vector, detector_vector), dim) #calculate_radius_overlap(self_vector, self.radius, detector_vector, detector.radius) #TODO: replace this!?
     #print('radius - overlap', self.radius, overlap, (self.radius - overlap))
-    self.f1 = self.radius - overlap # TODO: REMOVE THIS /2
+    self.f1 = volume - overlap #self.radius - overlap # TODO: REMOVE THIS /2
 
 class NegativeSelectionGeneticAlgorithm():
     def __init__(self, dim, pop_size, mutation_rate, self_region, self_region_rate, true_df, detector_set, distance_type):
@@ -259,11 +261,23 @@ def main():
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
-    parser.add_argument('--experiment', type=int, default=-1, help='Expirement number')
+    parser.add_argument('--experiment', type=int, default=-1, help='Experiment number')
     args = parser.parse_args()
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
     true_training_df = pd.read_hdf(args.dataset, key='true_training')
+
+    with h5py.File(args.dataset, 'r') as f:
+        if 'self_region' in f.attrs:
+            args.self_region = f.attrs['self_region']
+            print(f'Self region found in dataset {args.self_region}')
+        else:
+            print('No self region found in dataset')
+            if args.self_region == -1:
+                print('Self region not provided. Calculating self region from dataset')
+                args.self_region = calculate_self_region(np.array(true_training_df['vector'].tolist()))
+                print(f'Calculated self region: {args.self_region}')                
+
     if args.sample > 0:
         true_training_df = true_training_df.sample(args.sample)
     #true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
@@ -272,7 +286,8 @@ def main():
     fake_training_df = pd.read_hdf(args.dataset, key='fake_training')
     #fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
     fake_test_df = pd.read_hdf(args.dataset, key='fake_test')
-
+    args.detectorset = args.detectorset.replace('.json', '') 
+    args.detectorset = f'{args.detectorset}_{args.experiment}.json'
     if os.path.exists(args.detectorset):
         print(f"Detectors already exists. Expanding mature detector set > {args.detectorset}")
         dset = DetectorSet.load_from_file(args.detectorset, compute_fitness) 
@@ -374,28 +389,28 @@ def main():
             recall_list.append(recall(fake_detected, fake_total - fake_detected))
             print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
 
-        results = {
-            "precision": precision(fake_detected, true_detected),
-            "recall": recall(fake_detected, fake_total - fake_detected),
-            "true_detected": true_detected,
-            "true_total": true_total,
-            "fake_detected": fake_detected,
-            "fake_total": fake_total,
-            "negative_space_coverage": total_detector_hypersphere_volume(dset),
-            "time_to_build": time_to_build,
-            "detectors_count": len(dset.detectors),
-            "precision_list": precision_list,
-            "recall_list": recall_list,
-            "true_detected_list": true_detected_list,
-            "fake_detected_list": fake_detected_list,
-            "negative_space_coverage_list": negative_space_coverage_list,
-            "time_to_infer": time_to_infer,
-            "self_region": nsga.self_region,
-        }
+    results = {
+        "precision": precision(fake_detected, true_detected),
+        "recall": recall(fake_detected, fake_total - fake_detected),
+        "true_detected": true_detected,
+        "true_total": true_total,
+        "fake_detected": fake_detected,
+        "fake_total": fake_total,
+        "negative_space_coverage": total_detector_hypersphere_volume(dset),
+        "time_to_build": time_to_build,
+        "detectors_count": len(dset.detectors),
+        "precision_list": precision_list,
+        "recall_list": recall_list,
+        "true_detected_list": true_detected_list,
+        "fake_detected_list": fake_detected_list,
+        "negative_space_coverage_list": negative_space_coverage_list,
+        "time_to_infer": time_to_infer,
+        "self_region": nsga.self_region
+    }
 
-        experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
-        with open(experiment_filepath, 'w') as f:
-            json.dump(results, f, indent=4)
+    experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
+    with open(experiment_filepath, 'w') as f:
+        json.dump(results, f, indent=4)
 
 if __name__ == "__main__":
     main()

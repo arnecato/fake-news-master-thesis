@@ -2,12 +2,13 @@ import numpy as np
 import random
 import itertools
 from detectors import Detector, DetectorSet
-from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume
+from util import visualize_2d, visualize_3d, precision, recall, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume, calculate_self_region
 import pandas as pd
 import os
 import time
 import argparse
 import json
+import h5py
 
 '''
 NSGAII part based on Deb et al. (2001)
@@ -378,11 +379,25 @@ def main():
     parser.add_argument('--convergence_every', type=int, default=10, help='Check for convergence every x iterations')
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
-    parser.add_argument('--experiment', type=int, default=-1, help='Expirement number')
+    parser.add_argument('--experiment', type=int, default=-1, help='Experiment number')
     args = parser.parse_args()
+
+
 
     #dataset_file = f'dataset/ISOT/True_Fake_{args.word_embedding}_umap_{args.dim}dim_{args.neighbors}_{args.samples}.h5'
     true_training_df = pd.read_hdf(args.dataset, key='true_training')
+    
+    with h5py.File(args.dataset, 'r') as f:
+        if 'self_region' in f.attrs:
+            args.self_region = f.attrs['self_region']
+            print(f'Self region found in dataset {args.self_region}')
+        else:
+            print('No self region found in dataset')
+            if args.self_region == -1:
+                print('Self region not provided. Calculating self region from dataset')
+                args.self_region = calculate_self_region(np.array(true_training_df['vector'].tolist()))
+                print(f'Calculated self region: {args.self_region}') 
+            
     if args.sample > 0:
         true_training_df = true_training_df.sample(args.sample)
     #true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
@@ -391,7 +406,8 @@ def main():
     fake_training_df = pd.read_hdf(args.dataset, key='fake_training')
     #fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
     fake_test_df = pd.read_hdf(args.dataset, key='fake_test')
-
+    args.detectorset = args.detectorset.replace('.json', '') 
+    args.detectorset = f'{args.detectorset}_{args.experiment}.json'
     if os.path.exists(args.detectorset):
         print(f"Detectors already exists. Expanding mature detector set > {args.detectorset}")
         dset = DetectorSet.load_from_file(args.detectorset, compute_fitness) 
@@ -459,54 +475,55 @@ def main():
     print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
 
     true_plot_df = true_training_df #true_test_df # real_test_set_df
-    fake_plot_df = fake_training_df
+    fake_plot_df = fake_training_df 
+    
+    # generate test results
+    true_detected_list = []
+    fake_detected_list = []
+    precision_list = []
+    recall_list = []
+    negative_space_coverage_list = []
+    for i in range(100, len(dset.detectors), 100):
+        tmp_dset = DetectorSet(dset.detectors[:i])
+        negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
+        true_detected, true_total = nsga_nsa.detect(true_test_df, dset, i)
+        fake_detected, fake_total = nsga_nsa.detect(fake_test_df, dset, i)
+        true_detected_list.append(true_detected)
+        fake_detected_list.append(fake_detected)
+        precision_list.append(precision(fake_detected, true_detected))
+        recall_list.append(recall(fake_detected, fake_total - fake_detected))
+        print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
+
+    results = {
+        "precision": precision(fake_detected, true_detected),
+        "recall": recall(fake_detected, fake_total - fake_detected),
+        "true_detected": true_detected,
+        "true_total": true_total,
+        "fake_detected": fake_detected,
+        "fake_total": fake_total,
+        "negative_space_coverage": total_detector_hypersphere_volume(dset),
+        "time_to_build": time_to_build,
+        "detectors_count": len(dset.detectors),
+        "precision_list": precision_list,
+        "recall_list": recall_list,
+        "true_detected_list": true_detected_list,
+        "fake_detected_list": fake_detected_list,
+        "negative_space_coverage_list": negative_space_coverage_list,
+        "time_to_infer": time_to_infer,
+        "self_region": nsga_nsa.self_region
+    }
+
+    experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
+    with open(experiment_filepath, 'w') as f:
+        json.dump(results, f, indent=4)  
+
     # only plot if not in auto mode
     if args.auto == 0:
         if args.dim == 2:
             visualize_2d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)
 
         if args.dim == 3:
-            visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)    
-    # we are in auto mode - generate test results
-    elif args.auto == 1:
-        true_detected_list = []
-        fake_detected_list = []
-        precision_list = []
-        recall_list = []
-        negative_space_coverage_list = []
-        for i in range(100, len(dset.detectors), 100):
-            tmp_dset = DetectorSet(dset.detectors[:i])
-            negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
-            true_detected, true_total = nsga_nsa.detect(true_test_df, dset, i)
-            fake_detected, fake_total = nsga_nsa.detect(fake_test_df, dset, i)
-            true_detected_list.append(true_detected)
-            fake_detected_list.append(fake_detected)
-            precision_list.append(precision(fake_detected, true_detected))
-            recall_list.append(recall(fake_detected, fake_total - fake_detected))
-            print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
-
-        results = {
-            "precision": precision(fake_detected, true_detected),
-            "recall": recall(fake_detected, fake_total - fake_detected),
-            "true_detected": true_detected,
-            "true_total": true_total,
-            "fake_detected": fake_detected,
-            "fake_total": fake_total,
-            "negative_space_coverage": total_detector_hypersphere_volume(dset),
-            "time_to_build": time_to_build,
-            "detectors_count": len(dset.detectors),
-            "precision_list": precision_list,
-            "recall_list": recall_list,
-            "true_detected_list": true_detected_list,
-            "fake_detected_list": fake_detected_list,
-            "negative_space_coverage_list": negative_space_coverage_list,
-            "time_to_infer": time_to_infer,
-            "self_region": nsga_nsa.self_region
-        }
-
-        experiment_filepath = args.detectorset.replace('.json', '') + f'_experiment_results_{args.experiment}.json'
-        with open(experiment_filepath, 'w') as f:
-            json.dump(results, f, indent=4)  
+            visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)   
 
 if __name__ == "__main__":
     main()
