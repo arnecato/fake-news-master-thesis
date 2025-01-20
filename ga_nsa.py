@@ -357,13 +357,6 @@ def main():
     time_to_infer = time.perf_counter() - time0
     print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
     print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
-
-    # Visualize true, fake and detectors
-    #detector_positions = np.array([detector.vector for detector in dset.detectors])
-    #true_cluster = np.array(true_validation_df['vector'].tolist())
-    #fake_cluster = np.array(fake_validation_df['vector'].tolist())
-    true_plot_df = true_training_df #true_test_df # real_test_set_df
-    fake_plot_df = fake_training_df
    
     # we are in auto mode - generate test results
     true_detected_list = []
@@ -405,7 +398,9 @@ def main():
     with open(experiment_filepath, 'w') as f:
         json.dump(results, f, indent=4)
 
-     # only plot if not in auto mode
+
+    true_plot_df = true_training_df #true_test_df # real_test_set_df
+    fake_plot_df = fake_training_df
     if args.auto == 0:
         if args.dim == 2:
             visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region)

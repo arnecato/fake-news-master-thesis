@@ -15,7 +15,6 @@ import math
 NSGAII part based on Deb et al. (2001)
 '''
 
-
 def compute_fitness(self, detector_set):
     ''' Fitness function to be used by the detector '''
     overlap_volume = 0
@@ -33,7 +32,7 @@ def compute_fitness(self, detector_set):
                     closest_detector = detector
     self.f1 = volume - overlap_volume 
     if closest_detector is not None:
-        self.f2 = 1 / abs(closest_detector.radius)
+        self.f2 = closest_detector.radius
     else:
         self.f2 = float('inf')
 
@@ -111,7 +110,8 @@ class NSGAII_Negative_Selection():
         pareto_fronts = self.non_domination_sorting()
         #best_f1 = 0
         #best_f2 = 99999
-        best = 0.00000001
+        best_f1 = 0.00000001
+        best_f2 = 0.00000001
         stagnant = 0
         #mutation_change = mutation_change_rate * (self.feature_mean + self.feature_stdev * 3)
         #mutation_max = np.maxself.feature_mean + self.feature_stdev * 3
@@ -179,14 +179,18 @@ class NSGAII_Negative_Selection():
             # update stagnation (to decide on convergence)
             #TODO: implement check for f2 as well
             #TODO: Important! need to do proper M.O convergence here (now it is just checking f1 convergence based on first detector in optimal pareto front)
-            detector = self.pareto_fronts[0].individuals[0]
+            best_detector = max(self.pareto_fronts[0].individuals, key=lambda detector: detector.f1)
             # update stagnation (to decide on convergence)
-            detector = self.population[0]
-            detector.compute_fitness(self.detector_set)
-            print(best, detector.f1, np.max(detector.vector), np.min(detector.vector))
+            best_detector = self.population[0]
+            best_detector.compute_fitness(self.detector_set)
+            print(best_f1, best_detector.f1, np.max(best_detector.vector), np.min(best_detector.vector))
             
-            if best != 0 and abs((detector.f1 - best) / best) > 0.001:
-                best = detector.f1
+            if best_f1 != 0 and abs((best_detector.f1 - best_f1) / best_f1) > 0.001:
+                best_f1 = best_detector.f1
+                stagnant = 0
+                #print('Stagnant reset')
+            elif best_f2 != 0 and abs((best_detector.f2 - best_f2) / best_f2) > 0.001:
+                best_f2 = best_detector.f2
                 stagnant = 0
                 #print('Stagnant reset')
             else:
@@ -338,7 +342,7 @@ class ParetoFront():
         self.individuals = individuals
         #print(self.individuals)
         self.f1_sorted_list = sorted(self.individuals, key=lambda individual: individual.f1)
-        self.f2_sorted_list = sorted(self.individuals, key=lambda individual: individual.f2, reverse=True)
+        self.f2_sorted_list = sorted(self.individuals, key=lambda individual: individual.f2) # TODO: made it a maximize goal instead. Need to double check this later!
         self.calculate_crowding_distance()
 
     def calculate_crowding_distance(self):
@@ -437,7 +441,7 @@ def main():
                         new_detector = detector
         #new_detector = pareto_fronts[0].individuals[-1]
         if new_detector is not None:
-            print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2)        
+            print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2, len(dset.detectors) + 1)      
             if new_detector.f1 > 0:
                 dset.detectors.append(new_detector)
             else:
@@ -476,9 +480,6 @@ def main():
     time_to_infer = time.perf_counter() - time0
     print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
     print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
-
-    true_plot_df = true_training_df #true_test_df # real_test_set_df
-    fake_plot_df = fake_training_df 
     
     # generate test results
     true_detected_list = []
@@ -520,6 +521,9 @@ def main():
     with open(experiment_filepath, 'w') as f:
         json.dump(results, f, indent=4)  
 
+    true_plot_df = true_training_df #true_test_df # real_test_set_df
+    fake_plot_df = fake_training_df 
+    
     # only plot if not in auto mode
     if args.auto == 0:
         if args.dim == 2:

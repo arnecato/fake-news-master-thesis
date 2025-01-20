@@ -180,7 +180,7 @@ class Detector():
         # Normalize the direction vector (optional, for consistent step size)
         #direction_normalized = direction / np.linalg.norm(direction)
         # Move in the opposite direction of b and c
-        new_pos = self.vector + step * direction
+        new_pos = self.vector - step * direction
         #print('new pos', new_pos, 'feature_max', feature_max, 'feature_low', feature_low)
         exceeding_max = new_pos > feature_max 
         exceeding_max_negative = new_pos < feature_low
