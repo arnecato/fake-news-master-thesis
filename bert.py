@@ -14,12 +14,16 @@ class BERTVectorFactory():
         if model_name == 'roberta-base':
             self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
             self.model = RobertaModel.from_pretrained(model_name)
+        elif model_name == 'roberta-large':
+            self.tokenizer = RobertaTokenizer.from_pretrained(model_name)
+            self.model = RobertaModel.from_pretrained(model_name)
         elif model_name == 'bert-base-cased':
             self.tokenizer = BertTokenizer.from_pretrained(model_name)
             self.model = BertModel.from_pretrained(model_name)
         elif model_name == 'distilbert-base-cased':
             self.tokenizer = DistilBertTokenizer.from_pretrained(model_name)
             self.model = DistilBertModel.from_pretrained(model_name)
+        
         #self.model = DistilBertModel.from_pretrained('distilbert-base-cased')
     
     def document_vector(self, text):
@@ -79,7 +83,7 @@ class BERTVectorFactory():
     
 def main():
     parser = argparse.ArgumentParser(description='BERT Vectorization')
-    parser.add_argument('--model_name', type=str, required=True, choices=['bert-base-cased','distilbert-base-cased', 'roberta-base'], help='Path to the true news CSV file')
+    parser.add_argument('--model_name', type=str, required=True, choices=['bert-base-cased','distilbert-base-cased', 'roberta-base', 'roberta-large'], help='Path to the true news CSV file')
     args = parser.parse_args()
     bert_vfac = BERTVectorFactory(model_name=args.model_name)
     #bert_vfac.vectorize_dataframe_first_characters('dataset/ISOT/True.csv', 'dataset/ISOT/True_256_BERT.h5', ['title', 'text'], 256)

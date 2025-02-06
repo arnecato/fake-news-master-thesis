@@ -69,8 +69,8 @@ class Detector():
                     #print('new vector', best_distance, vector)'''
         detector = Detector(best_vector, 0, distance_type, fitness_function)
         distance_to_detector, nearest_detector = Detector.compute_closest_detector(detector_set, best_vector, distance_type)
-        distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type, self_range)
-        detector.radius = np.min([distance_to_detector, distance_to_self]) 
+        median_distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self_df, self_region, best_vector, distance_type, self_range)
+        detector.radius = np.min([distance_to_detector, median_distance_to_self]) 
         #print('created new', detector.radius, detector.vector)
         #detector.compute_fitness(detector_set)    
    
@@ -119,7 +119,7 @@ class Detector():
         for i in np.arange(0.01, 1, 0.1):
             #print(self_points)
             nearby_self = get_nearby_self(self_points, vector, np.max(feature_range) * i)
-            if len(nearby_self) > 0:
+            if len(nearby_self) > 1:
                 break
         if len(nearby_self) == 0:
             raise Exception(f'No nearby self points found {vector}, {feature_range}')
@@ -142,13 +142,20 @@ class Detector():
         #print('min before detectors', np.min(distances))
 
         #print('min after self:', np.min(distances))
-        max_distance = np.min(distances)  # maximum radius is set to the closest self
+        min_distance = np.min(distances)  # maximum radius is set to the closest self
         #if len(vector) == 2:
         #    print('max distance', max_distance)
-        max_index = np.argmin(distances)  # get the index of the lowest distance
+        min_index = np.argmin(distances)  # get the index of the lowest distance
+
+        # TODO: recheck this code 
+        # take the median of the closest selves!
+        distances[min_index] = float('inf')
+        min_distance_next = np.min(distances)
+        distances[min_index] = min_distance
+        median_distance = np.median([min_distance, min_distance_next])
         #if euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius) != min_distance:
         #    print('NOT CORRECT VECTOR min index', min_index, 'min distance', min_distance, euclidean_distance(self_df.iloc[min_index]['vector'], vector, 0, self_region_radius))
-        return max_distance, self_points[max_index], closest_selves # ['vector']
+        return min_distance, self_points[min_index], closest_selves # ['vector']
         
     def to_dict(self):
         d = {
@@ -172,11 +179,11 @@ class Detector():
             mutation_step = np.random.beta(a=1, b=4) * 0.1 * range_i
             self.vector[i] += mutation_step if random.choice([True, False]) else -mutation_step
             self.vector[i] = np.clip(self.vector[i], feature_low[i], feature_max[i])
-        #print('Old and new vector', old_vector, self.vector, self.vector - old_vector)
+            #print('Old and new vector', old_vector, self.vector, self.vector - old_vector, mutation_step)
     
     def move_away_from_nearest(self, nearest_vector, step, feature_low, feature_max):
         #print('move away from nearest', self.vector, nearest_vector)
-        direction = (self.vector - nearest_vector)    
+        direction = (nearest_vector - self.vector)    
         # Normalize the direction vector (optional, for consistent step size)
         #direction_normalized = direction / np.linalg.norm(direction)
         # Move in the opposite direction of b and c
@@ -211,7 +218,7 @@ class Detector():
 
     def dominated_by(self, comp_individual):
         ''' checks if this individual is dominated by the comp_individual '''
-        if (comp_individual.f1 > self.f1 and comp_individual.f2 <= self.f2) or (comp_individual.f1 >= self.f1 and comp_individual.f2 < self.f2):
+        if (comp_individual.f1 > self.f1 and comp_individual.f2 >= self.f2) or (comp_individual.f1 >= self.f1 and comp_individual.f2 > self.f2):
             return True
         else:
             return False

@@ -10,7 +10,7 @@ from detectors import Detector, DetectorSet
 from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, fast_cosine_distance, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume, calculate_self_region
 import json
 import h5py
-
+from sklearn.preprocessing import MinMaxScaler
 # 2D self region ---
 # bert long 3600_6000 self region = 0.04305774469300755
 # bert 1800_3000 self region = 0.05695028924327248
@@ -162,8 +162,8 @@ class NegativeSelectionGeneticAlgorithm():
                 # half of the time move away from closest
                 if random.choice([True, False]):
                     distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                    distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
-                    if distance_to_self < distance_to_detector:
+                    median_distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
+                    if median_distance_to_self < distance_to_detector:
                         other_vector = nearest_self.copy()
                     else:
                         other_vector = nearest_detector.vector.copy()
@@ -175,8 +175,8 @@ class NegativeSelectionGeneticAlgorithm():
                     offspring.mutate(self.feature_low, self.feature_max)
                 
                 distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type)
-                distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
-                offspring.radius = np.min([distance_to_detector, distance_to_self])
+                median_distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, offspring.vector, self.distance_type, self.range)
+                offspring.radius = np.min([distance_to_detector, median_distance_to_self])
                 offspring.compute_fitness(self.detector_set)
 
             self.population.extend(offsprings)     
@@ -216,8 +216,8 @@ class NegativeSelectionGeneticAlgorithm():
         if pop_check_ratio < 1:
             old_r = self.population[0].radius
             #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, self.population[0].vector, self.distance_type, self.population[0].feature_index)
-            distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, self.population[0].vector, self.distance_type, self.range)
-            self.population[0].radius = distance_to_self #np.min([distance_to_detector, distance_to_self])
+            median_distance_to_self, nearest_self, closest_selves = Detector.compute_closest_self(self.self_points, self.self_region, self.population[0].vector, self.distance_type, self.range)
+            self.population[0].radius = median_distance_to_self #np.min([distance_to_detector, distance_to_self])
             print(self.population[0].vector)
             self.population[0].compute_fitness(self.detector_set)
             print('Changed radius:', old_r, self.population[0].radius)
@@ -286,6 +286,14 @@ def main():
     fake_training_df = pd.read_hdf(args.dataset, key='fake_training')
     #fake_validation_df = pd.read_hdf(args.dataset, key='fake_validation')
     fake_test_df = pd.read_hdf(args.dataset, key='fake_test')
+
+    # normalize vectors
+    '''scaler = MinMaxScaler(feature_range=(-1, 1))
+    true_training_df['vector'] = [np.array(vec) for vec in scaler.fit_transform(np.vstack(true_training_df['vector'].values))]
+    fake_training_df['vector'] = [np.array(vec) for vec in scaler.transform(np.vstack(fake_training_df['vector'].values))]
+    true_test_df['vector'] = [np.array(vec) for vec in scaler.transform(np.vstack(true_test_df['vector'].values))]
+    fake_test_df['vector'] = [np.array(vec) for vec in scaler.transform(np.vstack(fake_test_df['vector'].values))]'''
+
     args.detectorset = args.detectorset.replace('.json', '') 
     args.detectorset = f'{args.detectorset}_{args.experiment}.json'
     if os.path.exists(args.detectorset):

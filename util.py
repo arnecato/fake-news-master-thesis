@@ -138,10 +138,12 @@ def get_nearby_self(points, center, distance):
     max_bounds = center + distance
     #print(points, center, distance, min_bounds, max_bounds)
     # Apply the conditions for all dimensions
+    #print('Min bounds', min_bounds, 'Max bounds', max_bounds, 'Distance', distance)
     conditions = np.all((points >= min_bounds) & (points <= max_bounds), axis=1)
-    selected_values = points[conditions]
-    #print(selected_values)
-    return selected_values
+    potential_values = points[conditions]
+    # Filter out points that are outside the distance (checking a square, while points can be diagonally further away)
+    potential_values = potential_values[np.linalg.norm(potential_values - center, axis=1) < distance]
+    return potential_values
 
 def calculate_voronoi_points(detector_set):
     # calculate voronoi points

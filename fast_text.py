@@ -151,8 +151,11 @@ class SpacyVectorFactory(VectorFactory):
         return pd.read_hdf(load_filepath, key='df')
 
 class FastTextVectorFactory():
-    def __init__(self):
-        self.model = fasttext.load_model('model/cc.en.300.bin')
+    def __init__(self, supervised=False):
+        if supervised:
+            self.model = fasttext.load_model('model/fasttext_model.bin')
+        else:
+            self.model = fasttext.load_model('model/cc.en.300.bin')
         self.dim = 300
         self.nlp = spacy.load("en_core_web_lg")
     
@@ -182,18 +185,17 @@ class FastTextVectorFactory():
 def main():
     true_file = 'dataset/ISOT/True.csv'
     fake_file = 'dataset/ISOT/Fake.csv'
-    true_vectorized_file = 'dataset/ISOT/True_fasttext.h5'
-    fake_vectorized_file = 'dataset/ISOT/Fake_fasttext.h5'
+    true_vectorized_file = 'dataset/ISOT/True_fasttext_supervised.h5'
+    fake_vectorized_file = 'dataset/ISOT/Fake_fasttext_supervised.h5'
+    fasttext_fac = FastTextVectorFactory(supervised=True)
     if not os.path.exists(true_vectorized_file):
         print(f"File {true_vectorized_file} does not exist. Vectorizing...")
-        fasttext_fac = FastTextVectorFactory()
         fasttext_fac.vectorize_dataframe(true_file, true_vectorized_file, ['title', 'text'])
     else:
         print(f"File {true_vectorized_file} already exists. Skipping.")
     
     if not os.path.exists(fake_vectorized_file):
         print(f"File {fake_vectorized_file} does not exist. Vectorizing...")
-        fasttext_fac = FastTextVectorFactory()
         fasttext_fac.vectorize_dataframe(fake_file, fake_vectorized_file, ['title', 'text'])
     else:
         print(f"File {fake_vectorized_file} already exists. Skipping.")

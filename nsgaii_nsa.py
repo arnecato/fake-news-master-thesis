@@ -15,7 +15,7 @@ import math
 NSGAII part based on Deb et al. (2001)
 '''
 
-def compute_fitness(self, detector_set):
+def compute_fitness(self, detector_set, nonself):
     ''' Fitness function to be used by the detector '''
     overlap_volume = 0
     dim = len(self.vector)
@@ -31,6 +31,16 @@ def compute_fitness(self, detector_set):
                     closest_distance = distance
                     closest_detector = detector
     self.f1 = volume - overlap_volume 
+
+    '''closest_nonself_distance = float('inf')
+    #nonself_sample = random.sample(list(nonself), min(10, len(nonself)))
+    for nonself_vector in nonself:
+        distance = euclidean_distance(self.vector, nonself_vector, 0, 0)
+        if distance < closest_nonself_distance:
+            #print('Closest nonself distance:', distance)
+            closest_nonself_distance = distance
+    self.f2 = closest_nonself_distance'''
+
     if closest_detector is not None:
         self.f2 = closest_detector.radius
     else:
@@ -38,10 +48,11 @@ def compute_fitness(self, detector_set):
 
 class NSGAII_Negative_Selection():
 
-    def __init__(self, dim, pop_size, self_region_rate, true_df, detector_set, distance_type, self_region):
+    def __init__(self, dim, pop_size, self_region_rate, true_df, detector_set, distance_type, self_region, nonself):
         self.dim = dim
         self.pop_size = pop_size
         self.self_points = np.array(true_df['vector'].tolist())
+        self.non_self_points = np.array(nonself['vector'].sample(100).tolist())
         #get_nearby_self(self.self_points, np.array([21,8]), 1)
         self.detector_set = detector_set
         self.distance_type = distance_type
@@ -80,8 +91,8 @@ class NSGAII_Negative_Selection():
         self.pareto_fronts = []
         self.f1_max = -np.inf
         self.f1_min = np.inf
-        self.f2_max = -np.inf
-        self.f2_min = np.inf
+        self.f2_max = np.inf
+        self.f2_min = -np.inf
 
     def initiate_population(self):
         # adds random parents and a batch of random "offspring"
@@ -167,13 +178,14 @@ class NSGAII_Negative_Selection():
             # create random detectors to fill up to 2*pop_size
             # 50 parents, 25 offspring, 25 random
             #TODO: remove random individuals, these should be created by offsprings instead
-            refill = self.pop_size * 2 - len(mating_pool) - len(offspring_pool)
-            random_pool = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(refill)]
-            for rnd_detector in random_pool:
-                rnd_detector.compute_fitness(self.detector_set)
+            #refill = self.pop_size * 2 - len(mating_pool) - len(offspring_pool)
+            #random_pool = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(refill)]
+            #for rnd_detector in random_pool:
+            #    rnd_detector.compute_fitness(self.detector_set)
 
             # set population to be parents + offspring + random
-            self.population = np.concatenate((mating_pool, offspring_pool, random_pool))
+            #print('Population size:', len(mating_pool), len(offspring_pool), len(random_pool))
+            self.population = np.concatenate((mating_pool, offspring_pool))
             pareto_fronts = self.non_domination_sorting()                
 
             # update stagnation (to decide on convergence)
@@ -181,7 +193,8 @@ class NSGAII_Negative_Selection():
             #TODO: Important! need to do proper M.O convergence here (now it is just checking f1 convergence based on first detector in optimal pareto front)
             best_detector = max(self.pareto_fronts[0].individuals, key=lambda detector: detector.f1)
             # update stagnation (to decide on convergence)
-            best_detector = self.population[0]
+            #best_detector = self.population[0]
+            #print('Best detector:', best_detector.f1, best_detector.vector)
             best_detector.compute_fitness(self.detector_set)
             print(best_f1, best_detector.f1, np.max(best_detector.vector), np.min(best_detector.vector))
             
@@ -332,6 +345,7 @@ class NSGAII_Negative_Selection():
         offspring_pool = [] # np.empty(len(pairwise_parents), dtype=Detector)
         for i in range(0, len(pairwise_parents)-1, 2):
             offspring_pool.extend(pairwise_parents[i].recombine(pairwise_parents[i+1], compute_fitness))
+            offspring_pool.extend(pairwise_parents[i].recombine(pairwise_parents[i+1], compute_fitness))
         return offspring_pool
 
 class ParetoFront():
@@ -406,7 +420,7 @@ def main():
                 print(f'Calculated self region: {args.self_region}') 
             
     if args.sample > 0:
-        true_training_df = true_training_df.sample(args.sample)
+        true_training_df = true_training_df.sample(args.sample, random_state=500)
     #true_validation_df = pd.read_hdf(args.dataset, key='true_validation')
     true_test_df = pd.read_hdf(args.dataset, key='true_test')
 
@@ -423,7 +437,7 @@ def main():
         dset = DetectorSet([])
     
     #TODO: make population size hyperparameter (args.pop_size)
-    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, args.self_region_rate, true_training_df, dset, 'euclidean', args.self_region)
+    nsga_nsa = NSGAII_Negative_Selection(args.dim, 10, args.self_region_rate, true_training_df, dset, 'euclidean', args.self_region, fake_training_df)
     last_detector_negative_coverage = total_detector_hypersphere_volume(dset)
     coverage_over_time = []
     time0 = time.perf_counter()
@@ -449,6 +463,7 @@ def main():
         else:
             print('No detector found ------------------------------------------------------------------------------------------------------- !')
         # check for convergence
+        #print('Negative space coverage:', total_detector_hypersphere_volume(dset))
         if len(dset.detectors) % args.convergence_every == 0 and len(dset.detectors) > 0 and i > 0:
             negative_space_coverage = total_detector_hypersphere_volume(dset)
             print('Negative space coverage:', negative_space_coverage)            
@@ -466,15 +481,20 @@ def main():
             last_detector_negative_coverage = negative_space_coverage
     time_to_build = time.perf_counter() - time0
     print('Total time to build model:', time_to_build)
-    dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
+    if os.path.exists(args.detectorset):
+        print(f"Loading existing detectors from {args.detectorset}")
+        dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
+    else:
+        print(f"Detectors file not found. Relying on existing dset")
     print('Detectors:', len(dset.detectors))
     #for detector in dset.detectors:
     #    detector.radius = detector.radius * 1
     time0 = time.perf_counter()
     #real_test_set_df = pd.concat([true_validation_df, true_test_df])
     #fake_test_set_df = pd.concat([fake_validation_df, fake_test_df])
-    true_detected, true_total = nsga_nsa.detect(true_test_df, dset, 9999)
-    fake_detected, fake_total = nsga_nsa.detect(fake_test_df, dset, 9999)
+    #print('TESTING ON TRAINING DATASET!! ******')
+    true_detected, true_total = nsga_nsa.detect(true_test_df, dset, 9999) # TODO: switch back to test!
+    fake_detected, fake_total = nsga_nsa.detect(fake_test_df, dset, 9999)# TODO: switch back to test!
     #true_detected, true_total = nsga.detect(true_df, dset, 9999)
     #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
     time_to_infer = time.perf_counter() - time0
@@ -521,8 +541,8 @@ def main():
     with open(experiment_filepath, 'w') as f:
         json.dump(results, f, indent=4)  
 
-    true_plot_df = true_training_df #true_test_df # real_test_set_df
-    fake_plot_df = fake_training_df 
+    true_plot_df = true_training_df # true_training_df #true_test_df # real_test_set_df
+    fake_plot_df = fake_training_df # fake_training_df 
     
     # only plot if not in auto mode
     if args.auto == 0:

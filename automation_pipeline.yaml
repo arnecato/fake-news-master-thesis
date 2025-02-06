@@ -23,8 +23,8 @@ model_training:
     tool: "python ./nsgaii_nsa.py"
     sample_size: -1
     max_amount: 4000
-    convergence_every: 100
-    coverage: 0.001 # required increase in negative space coverage
+    convergence_every: 25
+    coverage: 0.0005 # required increase in negative space coverage
     dims:
       - 2
       - 3
@@ -40,8 +40,8 @@ model_training:
     tool: "python ./ga_nsa.py"
     sample_size: -1
     max_amount: 4000
-    convergence_every: 100
-    coverage: 0.001 # required increase in negative space coverage
+    convergence_every: 25
+    coverage: 0.0005 # required increase in negative space coverage
     dims:
       - 2
       - 3

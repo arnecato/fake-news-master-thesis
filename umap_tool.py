@@ -44,6 +44,10 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     if not os.path.exists(filepath):
         true_df = pd.read_hdf(filepath_true, key='df') 
         fake_df = pd.read_hdf(filepath_fake, key='df')
+        # create unit vectors
+        #true_df['vector'] = true_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+        #fake_df['vector'] = fake_df['vector'].apply(lambda x: x / np.linalg.norm(x))
+        #print('First vector in true_df:', true_df['vector'].iloc[0])
         true_df['label'] = 'true'
         fake_df['label'] = 'false'
         
@@ -65,19 +69,31 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
         # prepare dimension reducer
         # CHECK OUT THIS CODE - USE FAKE NEWS OR NOT!?
-        only_true_not_fake_umap_fitting_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
-        print('UMAP fitting size:', len(only_true_not_fake_umap_fitting_df))
-        dimension_reducer = umap.UMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
+        umap_training_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
+        print('UMAP fitting size:', len(umap_training_df))
+        dimension_reducer = umap.ParametricUMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric) 
         #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
-        dimension_reducer.fit(np.vstack(only_true_not_fake_umap_fitting_df['vector'].values))
+        dimension_reducer.fit(np.vstack(umap_training_df['vector'].values))
         # reduce dimensions of all training data
+        '''reduced_true_training_vectors = dimension_reducer.transform(np.vstack(true_training_df['vector'].values))
+        true_training_df['vector'] =  [np.array(vec) for vec in reduced_true_training_vectors]
+        
+        reduced_fake_training_vectors = dimension_reducer.transform(np.vstack(fake_training_df['vector'].values))
+        fake_training_df['vector'] = [np.array(vec) for vec in reduced_fake_training_vectors]
+
+        reduced_true_test_vectors = dimension_reducer.transform(np.vstack(true_test_df['vector'].values))
+        true_test_df['vector'] = [np.array(vec) for vec in reduced_true_test_vectors]
+
+        reduced_fake_test_vectors = dimension_reducer.transform(np.vstack(fake_test_df['vector'].values))
+        fake_test_df['vector'] = [np.array(vec) for vec in reduced_fake_test_vectors]'''
+        # concat version
         true_fake_training_df = pd.concat([true_training_df, fake_training_df])
         reduced_true_fake_training_vectors = dimension_reducer.transform(np.vstack(true_fake_training_df['vector'].values))
+
         true_fake_training_df['vector'] =  [np.array(vec) for vec in reduced_true_fake_training_vectors]
         
         true_training_df['vector'] = true_fake_training_df.loc[true_fake_training_df['label'] == 'true', 'vector']
         fake_training_df['vector'] = true_fake_training_df.loc[true_fake_training_df['label'] == 'false', 'vector']
-
 
         true_fake_test_df = pd.concat([true_test_df, fake_test_df])
         reduced_true_fake_test_vectors = dimension_reducer.transform(np.vstack(true_fake_test_df['vector'].values))
@@ -142,6 +158,7 @@ def plot_file(filepath, true_keys, fake_keys, sample_size):
     plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys)
 
 def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys):
+    # Normalize the vectors to unit vectors
     # Extract the 2D vectors
     true_vectors = np.vstack(true_df['vector'].values)
     #true_validation_df = pd.concat([true_validation_df, true_test_df])
@@ -166,7 +183,6 @@ def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fa
         dset = DetectorSet([])
         visualize_3d(true_df, fake_df, dset, 0.01)
 
-
 def main():
     parser = argparse.ArgumentParser(description='UMAP Dimensionality Reduction and Other Options')
     subparsers = parser.add_subparsers(dest='command', help='Sub-command to run')
@@ -175,7 +191,7 @@ def main():
     umap_parser.add_argument('--filepath_true', type=str, required=True, help='Path to the input HDF5 file for true news')
     umap_parser.add_argument('--filepath_fake', type=str, required=True, help='Path to the input HDF5 file for fake news')
     umap_parser.add_argument('--dim', type=int, required=True, help='Number of dimensions for UMAP')
-    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['distilbert-base-cased', 'roberta-base', 'bert-base-cased', 'fasttext'], help='Type of word embedding')
+    umap_parser.add_argument('--word_embedding', type=str, required=True, choices=['distilbert-base-cased', 'roberta-base', 'bert-base-cased', 'fasttext', 'fasttext-supervised', 'roberta-large'], help='Type of word embedding')
     umap_parser.add_argument('--neighbors', type=int, default=15, help='Number of neighbors for UMAP')
     umap_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
     umap_parser.add_argument('--min_dist', type=float, default=0.0, help='Minimum distance for UMAP')
@@ -197,7 +213,6 @@ def main():
         plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size)
     else:
         parser.print_help()
-
 
 #  python.exe .\umap_tool.py umap --filepath_true="dataset/ISOT/True_bert.h5" --filepath_fake="dataset/ISOT/Fake_bert.h5" --word_embedding='bert' --dim=2 --neighbors=700 --sample_size=1000
 # python.exe .\umap_tool.py plot --filepath="dataset/ISOT/True_Fake_bert_umap_2dim_700_1000.h5"
