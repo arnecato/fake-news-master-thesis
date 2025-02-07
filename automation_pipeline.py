@@ -36,7 +36,6 @@ def model_training(num_experiments):
 
     commands = []
     for model in config['model_training']:
-        print(model)
         for dim in model['dims']:
             for embedding in model['embeddings']:
                 for i in range(num_experiments):
