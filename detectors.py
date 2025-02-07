@@ -160,8 +160,7 @@ class Detector():
     def to_dict(self):
         d = {
             "vector": [float(v) for v in self.vector],
-            "radius": float(self.radius),
-            "distance_type": self.distance_type,
+            "radius": float(self.radius)
         }
         #if self.feature_index is not None:
         #    d['feature_index'] = self.feature_index
@@ -170,7 +169,7 @@ class Detector():
 
     @classmethod
     def from_dict(cls, data, fitness_function):
-        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), data['distance_type'], fitness_function)
+        return cls(np.array(data['vector'], dtype=np.float32), np.float32(data['radius']), 'euclidean', fitness_function)
     
     def mutate(self, feature_low, feature_max):
         old_vector = self.vector.copy()

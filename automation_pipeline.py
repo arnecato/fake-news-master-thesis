@@ -36,6 +36,7 @@ def model_training(num_experiments):
 
     commands = []
     for model in config['model_training']:
+        print(model)
         for dim in model['dims']:
             for embedding in model['embeddings']:
                 for i in range(num_experiments):
@@ -56,8 +57,8 @@ def model_training(num_experiments):
         subprocess.run(cmd, shell=True)
 
 def main():
-    document_embedding()
-    umap_dimensionality_reduction()    
+    #document_embedding()
+    #umap_dimensionality_reduction()    
     model_training(1)
 
 if __name__ == "__main__":

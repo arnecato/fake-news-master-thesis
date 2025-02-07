@@ -26,6 +26,7 @@ model_training:
     convergence_every: 25
     coverage: 0.0005 # required increase in negative space coverage
     dims:
+      - 1
       - 2
       - 3
       - 4 
@@ -34,6 +35,11 @@ model_training:
       - distilbert-base-cased
       - bert-base-cased
       - roberta-base
+    self_region:
+      1: -1
+      2: -1 #0.03
+      3: -1 #0.01
+      4: -1 #0.005
     dataset_path: "dataset/ISOT/True_Fake_{embedding}_umap_{dim}dim_4000_4000_21417.h5"
     output_path: "model/detector/detectors_{embedding}_{dim}dim_4000_4000_21417_nsgaii_auto.json"
   - name: "ga_nsa"
@@ -43,6 +49,7 @@ model_training:
     convergence_every: 25
     coverage: 0.0005 # required increase in negative space coverage
     dims:
+      - 1
       - 2
       - 3
       - 4 
@@ -52,6 +59,7 @@ model_training:
       #- bert-base-cased
       #- roberta-base
     self_region:
+      1: -1
       2: -1 #0.03
       3: -1 #0.01
       4: -1 #0.005

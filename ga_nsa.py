@@ -296,12 +296,16 @@ def main():
 
     args.detectorset = args.detectorset.replace('.json', '') 
     args.detectorset = f'{args.detectorset}_{args.experiment}.json'
-    if os.path.exists(args.detectorset):
+    if os.path.exists(args.detectorset) and args.auto == 0:
         print(f"Detectors already exists. Expanding mature detector set > {args.detectorset}")
         dset = DetectorSet.load_from_file(args.detectorset, compute_fitness) 
     else:
-        print(f"Detectors do not exist. Building mature detector set from scratch > {args.detectorset}")
         dset = DetectorSet([])
+        if args.auto == 0:
+            print(f"Detectors do not exist. Building mature detector set from scratch > {args.detectorset}")
+        else:
+            print(f"Auto experiment, building mature detector set from scratch > {args.detectorset}")
+
     #TODO: make population size hyperparameter (args.pop_size)
     nsga = NegativeSelectionGeneticAlgorithm(args.dim, 10, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean')
     last_detector_negative_coverage = total_detector_hypersphere_volume(dset)

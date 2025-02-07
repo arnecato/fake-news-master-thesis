@@ -185,9 +185,9 @@ class FastTextVectorFactory():
 def main():
     true_file = 'dataset/ISOT/True.csv'
     fake_file = 'dataset/ISOT/Fake.csv'
-    true_vectorized_file = 'dataset/ISOT/True_fasttext_supervised.h5'
-    fake_vectorized_file = 'dataset/ISOT/Fake_fasttext_supervised.h5'
-    fasttext_fac = FastTextVectorFactory(supervised=True)
+    true_vectorized_file = 'dataset/ISOT/True_fasttext.h5'
+    fake_vectorized_file = 'dataset/ISOT/Fake_fasttext.h5'
+    fasttext_fac = FastTextVectorFactory(supervised=False)
     if not os.path.exists(true_vectorized_file):
         print(f"File {true_vectorized_file} does not exist. Vectorizing...")
         fasttext_fac.vectorize_dataframe(true_file, true_vectorized_file, ['title', 'text'])
