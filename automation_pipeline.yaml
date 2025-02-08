@@ -22,7 +22,7 @@ model_training:
   - name: "nsgaii_nsa"
     tool: "python ./nsgaii_nsa.py"
     sample_size: -1
-    max_amount: 4000
+    max_amount: 1500
     convergence_every: 25
     coverage: 0.0005 # required increase in negative space coverage
     dims:
@@ -45,7 +45,7 @@ model_training:
   - name: "ga_nsa"
     tool: "python ./ga_nsa.py"
     sample_size: -1
-    max_amount: 4000
+    max_amount: 1500
     convergence_every: 25
     coverage: 0.0005 # required increase in negative space coverage
     dims:
@@ -55,9 +55,9 @@ model_training:
       - 4 
     embeddings:
       - fasttext
-      #- distilbert-base-cased
-      #- bert-base-cased
-      #- roberta-base
+      - distilbert-base-cased
+      - bert-base-cased
+      - roberta-base
     self_region:
       1: -1
       2: -1 #0.03

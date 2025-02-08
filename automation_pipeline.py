@@ -1,5 +1,6 @@
 import yaml
 import subprocess
+from datetime import datetime
 
 def document_embedding():
     with open('automation_pipeline.yaml', 'r') as file:
@@ -27,7 +28,7 @@ def umap_dimensionality_reduction():
             commands.append(command)
 
     for cmd in commands:
-        print(cmd)    
+        print(f"{datetime.now()}: {cmd}")    
         subprocess.run(cmd, shell=True)
          
 def model_training(num_experiments):

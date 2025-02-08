@@ -29,7 +29,7 @@ results = {}
 
 file_identification = 'experiment_result'
 path = 'model/detector'
-files = [f for f in os.listdir(path) if file_identification in f]
+files = [f for f in os.listdir(path) if (file_identification in f and '-1' not in f)]
 for f in files:
     if 'nsgaii' in f:
         algo = 'nsgaii'
@@ -83,8 +83,8 @@ print(results)
 csv_file = 'results/averaged_results.csv'
 csv_columns = [
     'algorithm', 'dataset', 'dimension', 'precision_avg', 'precision_stdev', 'recall_avg', 'recall_stdev',
-    'accuracy_avg', 'accuracy_stdev', 'true_detected_avg', 'true_detected_stdev', 'true_total_avg', 'true_total_stdev',
-    'fake_detected_avg', 'f1_avg', 'f1_stdev', 'fake_detected_stdev', 'fake_total_avg', 'fake_total_stdev',
+    'accuracy_avg', 'accuracy_stdev', 'f1_avg', 'f1_stdev', 'true_detected_avg', 'true_detected_stdev', 'true_total_avg', 'true_total_stdev',
+    'fake_detected_avg', 'fake_detected_stdev', 'fake_total_avg', 'fake_total_stdev',
     'negative_space_coverage_avg', 'negative_space_coverage_stdev', 'time_to_build_avg', 'time_to_build_stdev',
     'detectors_count_avg', 'detectors_count_stdev', 'time_to_infer_avg', 'time_to_infer_stdev', 'self_region_avg',
     'self_region_stdev'
@@ -130,15 +130,10 @@ with open(csv_file, 'w', newline='') as csvfile:
                     'f1_avg': statistics.mean(f1_list),
                     'f1_stdev': statistics.stdev(f1_list),
                     'true_detected_avg': statistics.mean(true_detected_list),
-                    'true_detected_stdev': statistics.stdev(true_detected_list),
                     'true_total_avg': statistics.mean(true_total_list),
-                    'true_total_stdev': statistics.stdev(true_total_list),
                     'fake_detected_avg': statistics.mean(fake_detected_list),
-                    'fake_detected_stdev': statistics.stdev(fake_detected_list),
                     'fake_total_avg': statistics.mean(fake_total_list),
-                    'fake_total_stdev': statistics.stdev(fake_total_list),
                     'negative_space_coverage_avg': statistics.mean(negative_space_coverage_list),
-                    'negative_space_coverage_stdev': statistics.stdev(negative_space_coverage_list),
                     'time_to_build_avg': statistics.mean(time_to_build_list),
                     'time_to_build_stdev': statistics.stdev(time_to_build_list),
                     'detectors_count_avg': statistics.mean(detectors_count_list),

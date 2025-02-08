@@ -63,10 +63,13 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         # TODO: REMOVE HARDCODING
         #true_df = true_df.sample(8000, random_state=42)
         print('Metrics:', metric, 'Min dist:', min_dist, 'Neighbors:', neighbors)
-        true_training_df, true_test_df = train_test_split(true_df, test_size=0.3, random_state=42)
+        true_training_df, true_test_df = train_test_split(true_df, test_size=0.4, random_state=42)
         print('True training size:', len(true_training_df), 'Test size:', len(true_test_df))
-        fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.3, random_state=42)
+        true_validation_df, true_test_df = train_test_split(true_test_df, test_size=0.5, random_state=42)
+        fake_training_df, fake_test_df = train_test_split(fake_df, test_size=0.4, random_state=42)
         print('Fake training size:', len(fake_training_df), 'Test size:', len(fake_test_df))
+        fake_validation_df, fake_test_df = train_test_split(fake_test_df, test_size=0.5, random_state=42)
+        
         # prepare dimension reducer
         # CHECK OUT THIS CODE - USE FAKE NEWS OR NOT!?
         umap_training_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
@@ -101,6 +104,11 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         true_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'true', 'vector']
         fake_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'false', 'vector']
         
+        true_fake_validation_df = pd.concat([true_validation_df, fake_validation_df])
+        reduced_true_fake_validation_vectors = dimension_reducer.transform(np.vstack(true_fake_validation_df['vector'].values))
+        true_fake_validation_df['vector'] = [np.array(vec) for vec in reduced_true_fake_validation_vectors]
+        true_validation_df['vector'] = true_fake_validation_df.loc[true_fake_validation_df['label'] == 'true', 'vector']
+        fake_validation_df['vector'] = true_fake_validation_df.loc[true_fake_validation_df['label'] == 'false', 'vector']
         # reduce dimensions for all fake data
         #reduced_fake_training_vectors = dimension_reducer.transform(np.vstack(fake_training_df['vector'].values))
         #fake_training_df['vector'] = [np.array(vec) for vec in reduced_fake_training_vectors]
@@ -114,10 +122,10 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         #fake_df['vector'] = [np.array(vec) for vec in reduced_vectors]
         
         true_training_df.to_hdf(filepath, key='true_training', mode='w')
-        #true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
+        true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
         true_test_df.to_hdf(filepath, key='true_test', mode='a')
         fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
-        #fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
+        fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
         fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
         
         # find self region radius

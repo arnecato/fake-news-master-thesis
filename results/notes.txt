@@ -1,0 +1,550 @@
+UMAP started 15:29:51.16120
+
+C:\Users\arnec\AppData\Local\Programs\Python\Python311\Lib\tkinter\__init__.py:861: UserWarning: Creating legend with loc="best" can be slow with large amounts of data.
+  func(*args)                                                            python .\automation_pipeline.py
+2025-02-07 15:29:30.239601: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_bert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_bert-base-cased.h5 --word_embedding=bert-base-cased --dim=1 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 15:29:36.882415: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 15:29:37.861704: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+File exists: dataset/ISOT/True_Fake_bert-base-cased_umap_1dim_4000_4000_21417.h5 Skipping processing
+2025-02-07 15:29:40.809983: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_distilbert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_distilbert-base-cased.h5 --word_embedding=distilbert-base-cased --dim=1 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 
+--min_dist=0.0
+2025-02-07 15:29:47.305049: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 15:29:48.276036: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 15:29:51.161203: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3310   
+Epoch 2/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3184
+Epoch 3/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3176
+Epoch 4/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3172
+Epoch 5/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3170
+Epoch 6/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3167
+Epoch 7/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3167
+Epoch 8/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3165
+Epoch 9/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3164
+Epoch 10/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3163
+Dim reduced to: 1 File dataset/ISOT/True_Fake_distilbert-base-cased_umap_1dim_4000_4000_21417.h5 Processing time: 999.4548077000072
+2025-02-07 15:46:30.722540: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_roberta-base.h5 --filepath_fake=dataset/ISOT/Fake_roberta-base.h5 --word_embedding=roberta-base --dim=1 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 15:46:37.371825: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 15:46:38.394283: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 15:46:41.402116: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3281   
+Epoch 2/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3103
+Epoch 3/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3097
+Epoch 4/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3095
+Epoch 5/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3097
+Epoch 6/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3093
+Epoch 7/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3094
+Epoch 8/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3093
+Epoch 9/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 23s 6ms/step - loss: 0.3093
+Epoch 10/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3092
+Dim reduced to: 1 File dataset/ISOT/True_Fake_roberta-base_umap_1dim_4000_4000_21417.h5 Processing time: 1036.6574170999957
+2025-02-07 16:03:58.243371: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_fasttext.h5 --filepath_fake=dataset/ISOT/Fake_fasttext.h5 --word_embedding=fasttext --dim=1 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 16:04:05.018797: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 16:04:06.059386: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 16:04:09.211704: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 16s 3ms/step - loss: 0.3621   
+Epoch 2/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3419
+Epoch 3/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3407
+Epoch 4/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3403
+Epoch 5/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3400
+Epoch 6/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3399
+Epoch 7/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3395
+Epoch 8/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3396
+Epoch 9/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3395
+Epoch 10/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 3ms/step - loss: 0.3394
+Dim reduced to: 1 File dataset/ISOT/True_Fake_fasttext_umap_1dim_4000_4000_21417.h5 Processing time: 948.4808920000069
+2025-02-07 16:19:57.776420: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_bert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_bert-base-cased.h5 --word_embedding=bert-base-cased --dim=2 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 16:20:04.269083: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 16:20:05.251325: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 16:20:08.102199: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3302   
+Epoch 2/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3230
+Epoch 3/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3225
+Epoch 4/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3224
+Epoch 5/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3221
+Epoch 6/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3220
+Epoch 7/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3220
+Epoch 8/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3221
+Epoch 9/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3218
+Epoch 10/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3219
+Dim reduced to: 2 File dataset/ISOT/True_Fake_bert-base-cased_umap_2dim_4000_4000_21417.h5 Processing time: 1017.3467281000048
+2025-02-07 16:37:05.618618: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_distilbert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_distilbert-base-cased.h5 --word_embedding=distilbert-base-cased --dim=2 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 
+--min_dist=0.0
+2025-02-07 16:37:12.078116: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 16:37:13.079141: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 16:37:16.026389: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3136   
+Epoch 2/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3045
+Epoch 3/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3038
+Epoch 4/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3035
+Epoch 5/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3034
+Epoch 6/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3031
+Epoch 7/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3031
+Epoch 8/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3030
+Epoch 9/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3029
+Epoch 10/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3029
+Dim reduced to: 2 File dataset/ISOT/True_Fake_distilbert-base-cased_umap_2dim_4000_4000_21417.h5 Processing time: 1010.2041126999975
+2025-02-07 16:54:06.293426: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_roberta-base.h5 --filepath_fake=dataset/ISOT/Fake_roberta-base.h5 --word_embedding=roberta-base --dim=2 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 16:54:12.725368: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 16:54:13.696184: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 16:54:16.528148: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3109   
+Epoch 2/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2975
+Epoch 3/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2971
+Epoch 4/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2970
+Epoch 5/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2968
+Epoch 6/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2968
+Epoch 7/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2969
+Epoch 8/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2966
+Epoch 9/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2965
+Epoch 10/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2964
+Dim reduced to: 2 File dataset/ISOT/True_Fake_roberta-base_umap_2dim_4000_4000_21417.h5 Processing time: 1015.695493399995
+2025-02-07 17:11:12.352476: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_fasttext.h5 --filepath_fake=dataset/ISOT/Fake_fasttext.h5 --word_embedding=fasttext --dim=2 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 17:11:18.799116: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 17:11:19.767418: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 17:11:22.626766: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 16s 4ms/step - loss: 0.3422   
+Epoch 2/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3236
+Epoch 3/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3231
+Epoch 4/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3228
+Epoch 5/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3227
+Epoch 6/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3227
+Epoch 7/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3223
+Epoch 9/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3223
+Epoch 10/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3224
+Dim reduced to: 2 File dataset/ISOT/True_Fake_fasttext_umap_2dim_4000_4000_21417.h5 Processing time: 943.8155267000111
+2025-02-07 17:27:06.634923: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_bert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_bert-base-cased.h5 --word_embedding=bert-base-cased --dim=3 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0    
+2025-02-07 17:27:13.125277: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 17:27:14.089033: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 17:27:16.870079: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3271
+Epoch 2/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3211
+Epoch 3/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3207
+Epoch 4/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3204
+Epoch 5/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3202
+Epoch 6/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3202
+Epoch 7/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3204
+Epoch 8/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3200
+Epoch 9/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3199
+Epoch 10/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3200
+Dim reduced to: 3 File dataset/ISOT/True_Fake_bert-base-cased_umap_3dim_4000_4000_21417.h5 Processing time: 1006.0670009999885
+2025-02-07 17:44:03.126939: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_distilbert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_distilbert-base-cased.h5 --word_embedding=distilbert-base-cased --dim=3 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 
+--min_dist=0.0
+2025-02-07 17:44:10.926044: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 17:44:11.917645: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 17:44:14.764380: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3127   
+Epoch 2/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3030
+Epoch 3/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3024
+Epoch 4/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3020
+Epoch 5/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3019
+Epoch 6/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3018
+Epoch 7/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3017
+Epoch 8/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3017
+Epoch 9/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3016
+Epoch 10/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3015
+Dim reduced to: 3 File dataset/ISOT/True_Fake_distilbert-base-cased_umap_3dim_4000_4000_21417.h5 Processing time: 1012.2175803999999
+2025-02-07 18:01:07.193247: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_roberta-base.h5 --filepath_fake=dataset/ISOT/Fake_roberta-base.h5 --word_embedding=roberta-base --dim=3 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 18:01:13.611846: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 18:01:14.579780: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 18:01:17.375966: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3086   
+Epoch 2/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2965
+Epoch 3/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2960
+Epoch 4/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2958
+Epoch 5/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2957
+Epoch 6/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2956
+Epoch 7/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2954
+Epoch 8/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2956
+Epoch 9/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2956
+Epoch 10/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2953
+Dim reduced to: 3 File dataset/ISOT/True_Fake_roberta-base_umap_3dim_4000_4000_21417.h5 Processing time: 1005.5890498999943
+2025-02-07 18:18:03.124442: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_fasttext.h5 --filepath_fake=dataset/ISOT/Fake_fasttext.h5 --word_embedding=fasttext --dim=3 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 18:18:09.609808: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 18:18:10.613279: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 18:18:13.578180: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 16s 3ms/step - loss: 0.3426   
+Epoch 2/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3223
+Epoch 3/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3216
+Epoch 4/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3216
+Epoch 5/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3214
+Epoch 6/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3213
+Epoch 7/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3211
+Epoch 8/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3212
+Epoch 9/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3211
+Epoch 10/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3211
+Dim reduced to: 3 File dataset/ISOT/True_Fake_fasttext_umap_3dim_4000_4000_21417.h5 Processing time: 943.7883584999945
+2025-02-07 18:33:57.572665: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_bert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_bert-base-cased.h5 --word_embedding=bert-base-cased --dim=4 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 18:34:04.018431: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 18:34:04.984625: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 18:34:07.821036: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 23s 5ms/step - loss: 0.3273   
+Epoch 2/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3212
+Epoch 3/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3207
+Epoch 4/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3204
+Epoch 5/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3202
+Epoch 6/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3202
+Epoch 7/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3201
+Epoch 8/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3202
+Epoch 9/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3201
+Epoch 10/10
+4212/4212 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3200
+Dim reduced to: 4 File dataset/ISOT/True_Fake_bert-base-cased_umap_4dim_4000_4000_21417.h5 Processing time: 1017.877740099997
+2025-02-07 18:51:05.819058: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_distilbert-base-cased.h5 --filepath_fake=dataset/ISOT/Fake_distilbert-base-cased.h5 --word_embedding=distilbert-base-cased --dim=4 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 
+--min_dist=0.0
+2025-02-07 18:51:12.302228: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 18:51:13.292605: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 18:51:16.217110: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3118   
+Epoch 2/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3027
+Epoch 3/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3023
+Epoch 4/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3020
+Epoch 5/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3018
+Epoch 6/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3015
+Epoch 7/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3016
+Epoch 8/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.3014
+Epoch 9/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3014
+Epoch 10/10
+4081/4081 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.3013
+Dim reduced to: 4 File dataset/ISOT/True_Fake_distilbert-base-cased_umap_4dim_4000_4000_21417.h5 Processing time: 1007.271205099998
+2025-02-07 19:08:03.570604: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_roberta-base.h5 --filepath_fake=dataset/ISOT/Fake_roberta-base.h5 --word_embedding=roberta-base --dim=4 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 19:08:10.259148: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 19:08:11.251178: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 19:08:14.146362: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 22s 5ms/step - loss: 0.3098   
+Epoch 2/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2964
+Epoch 3/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2960
+Epoch 4/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 20s 5ms/step - loss: 0.2957
+Epoch 5/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2957
+Epoch 6/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2954
+Epoch 8/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2954
+Epoch 9/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2954
+Epoch 10/10
+4109/4109 ━━━━━━━━━━━━━━━━━━━━ 21s 5ms/step - loss: 0.2952
+Dim reduced to: 4 File dataset/ISOT/True_Fake_roberta-base_umap_4dim_4000_4000_21417.h5 Processing time: 1010.092341399999
+2025-02-07 19:25:04.354364: python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_fasttext.h5 --filepath_fake=dataset/ISOT/Fake_fasttext.h5 --word_embedding=fasttext --dim=4 --neighbors=4000 --umap_sample_size=4000 --sample_size=21417 --min_dist=0.0
+2025-02-07 19:25:10.802616: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-02-07 19:25:11.790177: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+0.005858686931443578 1.228369698608757
+Sample size: 21417
+Metrics: euclidean Min dist: 0.0 Neighbors: 4000
+True training size: 12850 Test size: 8567
+Fake training size: 12850 Test size: 8567
+UMAP fitting size: 4000
+2025-02-07 19:25:14.742796: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\umap\umap_.py:2437: UserWarning: n_neighbors is larger than the dataset size; truncating to X.shape[0] - 1
+  warn(
+Epoch 1/10
+C:\Users\arnec\My Python Code\fake-news-master-thesis\.venv\Lib\site-packages\keras\src\layers\layer.py:393: UserWarning: `build()` was called on layer 'umap_model', however the layer does not have a `build()` method implemented and it looks like it has unbuilt state. This will cause the layer to be marked as built, despite not being actually built, which may cause failures down the line. Make sure to implement a proper `build()` method.
+  warnings.warn(
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 16s 3ms/step - loss: 0.3436
+Epoch 2/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 3ms/step - loss: 0.3223
+Epoch 3/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 3ms/step - loss: 0.3216
+Epoch 4/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 3ms/step - loss: 0.3213
+Epoch 5/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3211
+Epoch 6/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3209
+Epoch 7/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3210
+Epoch 8/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3210
+Epoch 9/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3208
+Epoch 10/10
+4161/4161 ━━━━━━━━━━━━━━━━━━━━ 15s 4ms/step - loss: 0.3206
+Dim reduced to: 4 File dataset/ISOT/True_Fake_fasttext_umap_4dim_4000_4000_21417.h5 Processing time: 947.9717773000011
+(.venv) (base) PS C:\Users\arnec\My Python Code\fake-news-master-thesis>
