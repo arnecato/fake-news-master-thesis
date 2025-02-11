@@ -4,6 +4,26 @@ import matplotlib.pyplot as plt
 import math
 from scipy.spatial import Voronoi
 
+
+# Create 1D visualization
+def visualize_1d(true_df, fake_df, detector_set, self_region):
+    detector_positions = np.array([detector.vector for detector in detector_set.detectors])
+    true_cluster = np.array(true_df['vector'].tolist())
+    fake_cluster = np.array(fake_df['vector'].tolist())
+    plt.scatter(true_cluster[:, 0], np.zeros_like(true_cluster[:, 0]), color='blue', label='True', alpha=0.25)
+    plt.scatter(fake_cluster[:, 0], np.zeros_like(fake_cluster[:, 0]), color='red', label='Fake', alpha=0.25)
+    
+    ax = plt.gca()
+    for detector in detector_set.detectors:
+        ax.plot([detector.vector[0] - detector.radius, detector.vector[0] + detector.radius], [0, 0], color='green', linestyle='--', alpha=0.25)
+    for self_vector in true_df['vector']:
+        ax.plot([self_vector[0] - self_region, self_vector[0] + self_region], [0, 0], color='blue', linestyle='--', alpha=0.25)
+    
+    plt.title("True and Fake")
+    plt.scatter(detector_positions[:, 0], np.zeros_like(detector_positions[:, 0]), color='green', label='Detectors', alpha=0.25)
+    plt.legend()
+    plt.show()
+
 # Create 2D visualization
 def visualize_2d(true_df, fake_df, detector_set, self_region):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors])

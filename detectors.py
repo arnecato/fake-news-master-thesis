@@ -116,7 +116,7 @@ class Detector():
         closest_distance = float('inf')
 
         #print('range', np.max(feature_range) * 0.3)
-        for i in np.arange(0.01, 1, 0.1):
+        for i in np.arange(0.01, 1.5, 0.1):
             #print(self_points)
             nearby_self = get_nearby_self(self_points, vector, np.max(feature_range) * i)
             if len(nearby_self) > 1:

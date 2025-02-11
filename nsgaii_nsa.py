@@ -167,13 +167,13 @@ class NSGAII_Negative_Selection():
             # create random detectors to fill up to 2*pop_size
             # 50 parents, 25 offspring, 25 random
             #TODO: remove random individuals, these should be created by offsprings instead
-            refill = self.pop_size * 2 - len(mating_pool) - len(offspring_pool)
+            '''refill = self.pop_size * 2 - len(mating_pool) - len(offspring_pool)
             random_pool = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(refill)]
             for rnd_detector in random_pool:
-                rnd_detector.compute_fitness(self.detector_set)
-
+                rnd_detector.compute_fitness(self.detector_set)'''
+            #print('Lenghts:', len(mating_pool), len(offspring_pool)) #, len(random_pool))
             # set population to be parents + offspring + random
-            self.population = np.concatenate((mating_pool, offspring_pool, random_pool))
+            self.population = np.concatenate((mating_pool, offspring_pool)) #, random_pool))
             pareto_fronts = self.non_domination_sorting()                
 
             # update stagnation (to decide on convergence)
@@ -327,6 +327,7 @@ class NSGAII_Negative_Selection():
     def create_offspring_pool(self, pairwise_parents):
         offspring_pool = [] # np.empty(len(pairwise_parents), dtype=Detector)
         for i in range(0, len(pairwise_parents)-1, 2):
+            offspring_pool.extend(pairwise_parents[i].recombine(pairwise_parents[i+1], compute_fitness))
             offspring_pool.extend(pairwise_parents[i].recombine(pairwise_parents[i+1], compute_fitness))
         return offspring_pool
 

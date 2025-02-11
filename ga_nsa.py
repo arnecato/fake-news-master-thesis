@@ -181,14 +181,14 @@ class NegativeSelectionGeneticAlgorithm():
 
             self.population.extend(offsprings)     
             # add random detectors
-            rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(int(0.5 * self.pop_size))]
+            '''rnd_detectors = [Detector.create_detector(self.feature_low, self.feature_max, self.dim, self.self_points, self.self_region, self.detector_set, self.distance_type, compute_fitness, self.range) for _ in range(int(0.5 * self.pop_size))]
             for rnd_detector in rnd_detectors:
                 #distance_to_detector, nearest_detector = Detector.compute_closest_detector(self.detector_set, offspring.vector, self.distance_type, offspring.feature_index)
                 #distance_to_self, nearest_self = Detector.compute_closest_self(self.true_df, self.self_region, rnd_detector.vector, self.distance_type, rnd_detector.feature_index)
                 #offspring.radius = np.min([distance_to_detector, distance_to_self])
                 rnd_detector.compute_fitness(self.detector_set)
                 #print('Random detector:', rnd_detector.radius, rnd_detector.f1, distance_to_self)
-            self.population.extend(rnd_detectors)
+            self.population.extend(rnd_detectors)'''
             
             #self.compute_population_fitness()
             # sort full population
@@ -310,7 +310,7 @@ def main():
 
     if not(args.auto == 1 and os.path.exists(experiment_filepath)):
         #TODO: make population size hyperparameter (args.pop_size)
-        nsga = NegativeSelectionGeneticAlgorithm(args.dim, 10, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean')
+        nsga = NegativeSelectionGeneticAlgorithm(args.dim, 20, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean')
         last_detector_negative_coverage = total_detector_hypersphere_volume(dset)
         coverage_over_time = []
         time0 = time.perf_counter()
