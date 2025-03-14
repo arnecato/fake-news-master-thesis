@@ -1,0 +1,44 @@
+- finn ut at min_dist og n_neighbors hadde god effekt
+- vise 
+
+
+min_dist=0 - Fixed!
+umap sample size ?
+neighbors ?
+spread ?
+cosine or euclidean?
+
+What parameters should I have?
+	min dist - already settled.
+	high or low neighbors? low neighbors.
+        high or low spread? 1.0 is ok. No difference seen.
+Should I train with full trainingset or just 4000? Just 4000.
+
+If it is much better with larger training size and normal spread, then retrain.
+	Experiment 1 - checking large training set, spread = 1. 2447s. Result: Distinct and dense clusters. But, self hiding within dense cluster spaces. Not clearly better.
+If it is not, then train normal training size with spread=5 on distilbert. Better?
+	Experiment 2 - 4000 training size, spread = 5. Result: Cannot see difference.
+If yes, then try on roberta. If spread makes it much better, then retrain all?
+	Experiment 3 - 4000 training size, spread = 5. Result: Did not do experiment. Exp2: spread does not help.
+Cosine.
+	Experiment 4 - Cosine metric (4000 training size). 1153s. Result: Not clearly better.
+Neighbors.
+	Experiment 5a - Neighbors 15 (4000 training size). 998s. Result:Looks better. Clearer separation between cluster. Less self in nonself cluster?
+	Experiment 5b - Neighbors 100 (4000 training size). Result:
+	Experiment 5c - Neighbors 1000 (4000 training size). Result:
+	Experiment 5c - Neighbors 1000 (4000 training size). Roberta. Result:
+
+Min dist. 0.1 and 0.0 - not necessary to compare?
+Neighbors. default 15, or 4000? Compare roberta.	
+
+Can justify min dist 0.0, spread 5, high neighbors, based on documentation, and those 2 sources. Blog and journal.
+
+Computational limitation, distilbert, 3.2GB vs 36MB?, not much change. No point in running all experiments with that. Discussion: limited
+the model, can probably get a bit more performance by training on the full trainingset. 
+
+Limit the scope and computational cost of experiments, a full grid search for parameters not possible for all combinations of NLP model and parameters,
+and a limit on the amount of training data to train on. Preliminary experiments showed promising and viable results with limited training set (4000),
+and that most important parameteres were min dist, neighbors. Also supported by other research. Spread was also tested which did not seem to make much difference.
+
+Distilbert, indication of clear clusters, but also some fragmentation. Possible to see clear change in density of cluster and 
+changes in fragmentation. While roberta may have too little fragmentation from the baseline.

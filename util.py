@@ -1,5 +1,6 @@
 import numpy as np
 import plotly.graph_objects as go
+import plotly.io as pio
 import matplotlib.pyplot as plt
 import math
 from scipy.spatial import Voronoi
@@ -61,43 +62,45 @@ def create_sphere(center, radius, resolution=20):
     
     return x, y, z
 
-def visualize_3d(true_df, fake_df, detector_set, self_region):
-    detector_positions = np.array([detector.vector for detector in detector_set.detectors])
+def visualize_3d(true_df, fake_df, detector_set, self_region, save_path="images/plots/3D_plot.pdf"):
+    detector_positions = np.array([detector.vector for detector in detector_set.detectors]) if detector_set.detectors else np.array([])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
 
     # 3D Visualization
-    if len(detector_set.detectors) > 0:
-        detector_scatter = go.Scatter3d(
+    traces = []
+    
+    if detector_positions.size > 0:
+        traces.append(go.Scatter3d(
             x=detector_positions[:, 0],
             y=detector_positions[:, 1],
             z=detector_positions[:, 2],
             mode='markers',
-            marker=dict(size=5, color='green'),
-            name='Detectors'
-        )
-
-    true_scatter = go.Scatter3d(
+            marker=dict(size=3, color='green'),  # Smaller markers
+            showlegend=False
+        ))
+    
+    traces.append(go.Scatter3d(
         x=true_cluster[:, 0],
         y=true_cluster[:, 1],
         z=true_cluster[:, 2],
         mode='markers',
-        marker=dict(size=5, color='blue'),
-        name='True'
-    )
-
-    fake_scatter = go.Scatter3d(
+        marker=dict(size=3, color='blue'),  # Smaller markers
+        showlegend=False
+    ))
+    
+    traces.append(go.Scatter3d(
         x=fake_cluster[:, 0],
         y=fake_cluster[:, 1],
         z=fake_cluster[:, 2],
         mode='markers',
-        marker=dict(size=5, color='red'),
-        name='Fake'
-    )
+        marker=dict(size=3, color='red'),  # Smaller markers
+        showlegend=False
+    ))
 
     # Create spheres 
     spheres = []
-    if len(detector_set.detectors) > 0:
+    if detector_positions.size > 0:
         for detector in detector_set.detectors:
             x, y, z = create_sphere(detector.vector, detector.radius)
             spheres.append(go.Mesh3d(
@@ -107,8 +110,9 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
                 opacity=0.3,  # Transparency
                 color='green',
                 alphahull=0,
-                name='Detector Sphere'
+                showlegend=False
             ))
+    
     for self_sample in true_cluster:
         x, y, z = create_sphere(self_sample, self_region)
         spheres.append(go.Mesh3d(
@@ -118,16 +122,34 @@ def visualize_3d(true_df, fake_df, detector_set, self_region):
             opacity=0.3,  # Transparency
             color='blue',
             alphahull=0,
-            name='Self Sphere'
+            showlegend=False
         ))
 
     # Create the figure and add the scatter plots and spheres
-    if len(detector_set.detectors) > 0:
-        fig = go.Figure(data=[detector_scatter, true_scatter, fake_scatter] + spheres)
-    else:
-        fig = go.Figure(data=[true_scatter, fake_scatter] + spheres)
-    #fig = go.Figure(data=[true_scatter, fake_scatter])
-
+    fig = go.Figure(data=traces + spheres)
+    
+    # Set layout options for a compact appearance
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="X",
+            yaxis_title="Y",
+            zaxis_title="Z",
+            xaxis=dict(showgrid=True, showticklabels=True, zeroline=False),
+            yaxis=dict(showgrid=True, showticklabels=True, zeroline=False),
+            zaxis=dict(showgrid=True, showticklabels=True, zeroline=False)
+        ),
+        margin=dict(l=0, r=0, b=0, t=0),  # Remove extra space around the plot
+        autosize=True, width=800, height=800  # Set a fixed size for the plot
+    )
+    
+    # Save high-resolution images from different angles (top-down left, top-down right, bottom-up left, bottom-up right)
+    angles = [(2, -2, 2), (0.1, 3.5, 0.1), (2.5, 0.1, 0.1), (-2, 2, 2)]
+    for i, angle in enumerate(angles):
+        fig.update_layout(
+            scene_camera=dict(eye=dict(x=angle[0], y=angle[1], z=angle[2]))
+        )
+        pio.write_image(fig, f"report/3D_plot_angle_{i+1}.pdf", scale=3)
+    
     # Show the plot
     fig.show()
 
