@@ -52,6 +52,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         postfix = '_' + postfix
     filepath = f'dataset/ISOT/True_Fake_{word_embedding}_umap_{dim}dim_{neighbors}_{umap_sample_size}_{sample_size}{postfix}.h5'
     if not os.path.exists(filepath):
+        print('Processing file:', filepath)
         true_df = pd.read_hdf(filepath_true, key='df') 
         fake_df = pd.read_hdf(filepath_fake, key='df')
         # create unit vectors

@@ -59,7 +59,7 @@ def model_training(num_experiments):
 def main():
     #document_embedding()
     #umap_dimensionality_reduction()    
-    model_training(1)
+    model_training(10)
 
 if __name__ == "__main__":
     main()
