@@ -62,7 +62,7 @@ def create_sphere(center, radius, resolution=20):
     
     return x, y, z
 
-def visualize_3d(true_df, fake_df, detector_set, self_region, save_path="images/plots/3D_plot.pdf"):
+def visualize_3d(true_df, fake_df, detector_set, self_region, embedding_model):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors]) if detector_set.detectors else np.array([])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
@@ -136,19 +136,20 @@ def visualize_3d(true_df, fake_df, detector_set, self_region, save_path="images/
             zaxis_title="Z",
             xaxis=dict(showgrid=True, showticklabels=True, zeroline=False),
             yaxis=dict(showgrid=True, showticklabels=True, zeroline=False),
-            zaxis=dict(showgrid=True, showticklabels=True, zeroline=False)
+            zaxis=dict(showgrid=True, showticklabels=True, zeroline=False),
+            aspectmode="auto"  # Ensures optimal aspect ratio
         ),
         margin=dict(l=0, r=0, b=0, t=0),  # Remove extra space around the plot
-        autosize=True, width=800, height=800  # Set a fixed size for the plot
+        autosize=True,  # Ensures it scales properly in different views
     )
     
     # Save high-resolution images from different angles (top-down left, top-down right, bottom-up left, bottom-up right)
-    angles = [(2, -2, 2), (0.1, 3.5, 0.1), (2.5, 0.1, 0.1), (-2, 2, 2)]
+    angles = [(1.5, -1.5, 1.5), (0.1, 2.5, 0.1), (2.5, 0.1, 0.1), (-1.5, 1.5, 1.5)]
     for i, angle in enumerate(angles):
         fig.update_layout(
             scene_camera=dict(eye=dict(x=angle[0], y=angle[1], z=angle[2]))
         )
-        pio.write_image(fig, f"report/3D_plot_angle_{i+1}.pdf", scale=3)
+        pio.write_image(fig, f"report/{embedding_model}_3D_plot_angle_{i+1}.pdf", width=1200, height=1000, scale=3)
     
     # Show the plot
     fig.show()

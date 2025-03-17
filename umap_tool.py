@@ -164,7 +164,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     else:
         print('File exists:', filepath, 'Skipping processing')
     
-def plot_file(filepath, true_keys, fake_keys, sample_size):
+def plot_file(filepath, true_keys, fake_keys, sample_size, embedding_model):
     true_df = pd.read_hdf(filepath, key=true_keys[0])
 
     for key in true_keys[1:]:
@@ -182,9 +182,9 @@ def plot_file(filepath, true_keys, fake_keys, sample_size):
         dim = f.attrs['dim']
         neighbors = f.attrs['neighbors']
         sample_size = f.attrs['sample_size']
-    plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys)
+    plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model)
 
-def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, save_path="report/plot.pdf"):
+def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model):
     true_vectors = np.vstack(true_df['vector'].values)
     fake_vectors = np.vstack(fake_df['vector'].values)
     
@@ -192,7 +192,7 @@ def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fa
         fig, ax = plt.subplots(figsize=(6, 4), dpi=300)  # High-res for print
         
         ax.scatter(true_vectors[:, 0], true_vectors[:, 1], s=20, color='blue', alpha=0.25, label="Real News")
-        #ax.scatter(fake_vectors[:, 0], fake_vectors[:, 1], s=20, color='red', alpha=0.25, label="Fake News")
+        ax.scatter(fake_vectors[:, 0], fake_vectors[:, 1], s=20, color='red', alpha=0.25, label="Fake News")
         
         ax.set_title(rf'UMAP {word_embedding} 2D - {len(true_vectors)+len(fake_vectors)} samples', fontsize=14, fontweight='bold')
         #ax.set_xlabel(r'UMAP 1', fontsize=12)
@@ -205,12 +205,12 @@ def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fa
         ax.grid(True, linestyle='--', linewidth=0.5)
         ax.legend(loc='best', fontsize=10)
         
-        plt.savefig(save_path, bbox_inches='tight', format='pdf')  # Save as vector format
+        plt.savefig("report/{embedding_model}_2D_plot.pdf", bbox_inches='tight', format='pdf')  # Save as vector format
         plt.show()
     
     elif fake_vectors.shape[1] == 3:
         dset = DetectorSet([])
-        visualize_3d(true_df, fake_df, dset, 0.01)
+        visualize_3d(true_df, fake_df, dset, 0.01, embedding_model)
 
 
 def main():
@@ -234,6 +234,7 @@ def main():
     plot_parser.add_argument('--true_keys', type=str, default='true_training,true_validation,true_test', help='Comma-separated list of keys for true data')
     plot_parser.add_argument('--fake_keys', type=str, default='fake_training,fake_validation,fake_test', help='Comma-separated list of keys for fake data')
     plot_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
+    plot_parser.add_argument('--model', type=str, default="", help='NLP model used. To be used for filename.')
 
     args = parser.parse_args()
 
@@ -241,7 +242,7 @@ def main():
     if args.command == 'umap':
         reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, umap_sample_size=args.umap_sample_size, min_dist=args.min_dist, postfix=args.postfix, metric=args.metric, spread=args.spread)
     elif args.command == 'plot':
-        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size)
+        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size, args.model)
     else:
         parser.print_help()
 
