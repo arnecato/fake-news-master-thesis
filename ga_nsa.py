@@ -311,114 +311,63 @@ def main():
     if not(args.auto == 1 and os.path.exists(experiment_filepath)):
         #TODO: make population size hyperparameter (args.pop_size)
         nsga = NegativeSelectionGeneticAlgorithm(args.dim, 20, 1, args.self_region, args.self_region_rate, true_training_df, dset, 'euclidean')
-        last_detector_negative_coverage = total_detector_hypersphere_volume(dset)
-        coverage_over_time = []
+        stagnation = 0
+        best_validation_f1 = 0
+        best_dset = DetectorSet([])
+        validation_true_detected_list = []
+        validation_fake_detected_list = []
+        validation_precision_list = []
+        validation_recall_list = []
+        validation_negative_space_coverage_list = []
+        convergence_checked_already = []
         time0 = time.perf_counter()
         while len(dset.detectors) < args.amount:
             detector = nsga.evolve_detector(3, pop_check_ratio=1) 
             if detector.f1 > 0:
                 dset.detectors.append(detector)        
             print('Detectors:', len(dset.detectors))
-            if len(dset.detectors) % args.convergence_every == 0:
-                dset.save_to_file(args.detectorset)    
-            if len(dset.detectors) >= args.amount:
-                break
-            '''if len(dset.detectors) % args.convergence_every == 0 and len(dset.detectors) > 0 and i > 0:
-                negative_space_coverage = total_detector_hypersphere_volume(dset)
-                print('Negative space coverage:', negative_space_coverage)            
-                coverage_over_time.append(negative_space_coverage)
-                if last_detector_negative_coverage > 0:
-                    coverage_pct = (negative_space_coverage - last_detector_negative_coverage) / last_detector_negative_coverage
-                    if coverage_pct > args.coverage:
-                        print('Checking for convergence', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
-                        print(coverage_over_time)
-                        dset.save_to_file(args.detectorset)
-                    else:
-                        print('Converged', negative_space_coverage, last_detector_negative_coverage, coverage_pct)
-                        print(coverage_over_time)
-                        break
-                last_detector_negative_coverage = negative_space_coverage'''
 
-            '''if len(dset.detectors) % 1 == 0:
-                print('Detectors:', len(dset.detectors))
-                time0 = time.perf_counter()
-                true_detected, true_total = nsga.detect(true_df, dset, 9999)
-                fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
-                print(time.perf_counter() - time0)
-                print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
-                print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)
-                if dim == 2:
-                    visualize_2d(true_df, fake_df, dset, nsga.self_region)
-                elif dim == 3:
-                    visualize_3d(true_df, fake_df, dset, nsga.self_region)'''
+            # check for convergence
+            if len(dset.detectors) % args.convergence_every == 0:
+                dset.save_to_file(args.detectorset)  
+
+                if len(dset.detectors) not in convergence_checked_already:
+                    # validation check
+                    print('Checking f1 on validation and convergence')
+                    true_validation_detected, true_validation_total = nsga.detect(true_validation_df, dset, len(dset.detectors))
+                    fake_validation_detected, fake_validation_total = nsga.detect(fake_validation_df, dset, len(dset.detectors))
+                    f1_validation = f1_score(fake_validation_detected, true_validation_detected, fake_validation_total - fake_validation_detected)
+                    validation_negative_space_coverage_list.append(total_detector_hypersphere_volume(dset))
+                    validation_true_detected_list.append(true_validation_detected)
+                    validation_fake_detected_list.append(fake_validation_detected)
+                    validation_precision_list.append(precision(fake_validation_detected, true_validation_detected))
+                    validation_recall_list.append(recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
+                    if f1_validation > best_validation_f1:
+                        best_validation_f1 = f1_validation
+                        best_dset.detectors = dset.detectors.copy()
+                        stagnation = 0
+                        print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
+                    else:
+                        stagnation += 1
+                        print('Stagnation', stagnation)
+                        print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
+                        if stagnation >= 5:
+                            print('Early stopping', best_validation_f1, len(best_dset.detectors))
+                            break
+                    # make sure we do not check convergence again for this exact amount of detectors
+                    convergence_checked_already.append(len(dset.detectors))
+
         time_to_build = time.perf_counter() - time0
         print('Total time to build model:', time_to_build)
-        if dset is not None and len(dset.detectors) > 1:
-            dset.save_to_file(args.detectorset)
+        if best_dset is not None and len(best_dset.detectors) > 1:
+            best_dset.save_to_file(args.detectorset)
         dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
         print('Detectors:', len(dset.detectors))
-        '''feature_index_lengths = {}
-        for detector in dset.detectors:
-            length = len(detector.feature_index)
-            if length not in feature_index_lengths:
-                feature_index_lengths[length] = 0
-            feature_index_lengths[length] += 1
-        print("Feature index lengths and their counts:", feature_index_lengths)'''
-        #for detector in dset.detectors:
-        #    detector.radius = detector.radius * 1
-
-        #real_test_set_df = pd.concat([true_validation_df, true_test_df])
-        #fake_test_set_df = pd.concat([fake_validation_df, fake_test_df])
-        '''true_detected, true_total = nsga.detect(true_test_df, dset, 9999)
-        fake_detected, fake_total = nsga.detect(fake_test_df, dset, 9999)
-        #true_detected, true_total = nsga.detect(true_df, dset, 9999)
-        #fake_detected, fake_total = nsga.detect(fake_df, dset, 9999)
-
-        print('Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
-        print('True/Real detected:', true_detected, 'Total real/true:', true_total, 'Fake detected:', fake_detected, 'Total fake:', fake_total)'''
-    
-        # generate test results
-        validation_true_detected_list = []
-        validation_fake_detected_list = []
-        validation_precision_list = []
-        validation_recall_list = []
-        validation_negative_space_coverage_list = []
-        best_dset = None
-        best_validation_f1 = 0
-        stagnation = 0
-        for i in range(25, len(dset.detectors), 25):
-            print('Checking validation', i)
-            tmp_dset = DetectorSet(dset.detectors[:i])
-            # validation check
-            true_validation_detected, true_validation_total = nsga.detect(true_validation_df, tmp_dset, i)
-            fake_validation_detected, fake_validation_total = nsga.detect(fake_validation_df, tmp_dset, i)
-            f1_validation = f1_score(fake_validation_detected, true_validation_detected, fake_validation_total - fake_validation_detected)
-            validation_negative_space_coverage_list.append(total_detector_hypersphere_volume(tmp_dset))
-            validation_true_detected_list.append(true_validation_detected)
-            validation_fake_detected_list.append(fake_validation_detected)
-            validation_precision_list.append(precision(fake_validation_detected, true_validation_detected))
-            validation_recall_list.append(recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
-            if f1_validation > best_validation_f1:
-                best_validation_f1 = f1_validation
-                best_dset = tmp_dset
-                stagnation = 0
-                print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
-            else:
-                stagnation += 1
-                print('Stagnation', stagnation)
-                if stagnation >= 5:
-                    print('Early stopping', i, best_validation_f1, len(best_dset.detectors))
-                    print('Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
-                    break      
         
         time0 = time.perf_counter()
-        true_detected, true_total = nsga.detect(true_test_df, best_dset, i)
-        fake_detected, fake_total = nsga.detect(fake_test_df, best_dset, i)
+        true_detected, true_total = nsga.detect(true_test_df, best_dset, len(best_dset.detectors))
+        fake_detected, fake_total = nsga.detect(fake_test_df, best_dset, len(best_dset.detectors))
         test_time_to_infer = time.perf_counter() - time0
-        #true_detected_list.append(true_detected)
-        #fake_detected_list.append(fake_detected)
-        #precision_list.append(precision(fake_detected, true_detected))
-        #recall_list.append(recall(fake_detected, fake_total - fake_detected))
         print('Test Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
 
         results = {

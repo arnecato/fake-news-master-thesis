@@ -47,7 +47,7 @@ def model_training(num_experiments):
                       f"{model['tool']} --dim={dim} --dataset={dataset_path} "
                       f"--detectorset={output_path} --amount={model['max_amount']} "
                       f"--convergence_every={model['convergence_every']} "
-                      f"--self_region={self_region} --coverage={model['coverage']} "
+                      f"--self_region={self_region} "
                       f"--auto=1 --sample={model['sample_size']} --experiment={i}"
                   )
                   commands.append(command)
@@ -59,7 +59,8 @@ def model_training(num_experiments):
 def main():
     #document_embedding()
     #umap_dimensionality_reduction()    
-    model_training(10)
+    model_training(3)
+
 
 if __name__ == "__main__":
     main()
