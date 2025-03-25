@@ -4,33 +4,701 @@ import csv
 import statistics
 import pandas as pd
 import matplotlib.pyplot as plt
-import openpyxl
+import numpy as np
+import subprocess
+import glob
+import sys
+import os
+import time
+# Use LaTeX and IEEE-style font settings
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.size": 12,
+    "axes.labelsize": 12,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 10
+})
+
+def create_full_table_sorted_by_f1():
+    # Create a copy of the dataframe with algorithm names mapped
+    display_df = df.copy()
+    display_df['algorithm'] = display_df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
+    
+    # Round detectors count to nearest integer
+    display_df['detectors_count_avg'] = display_df['detectors_count_avg'].round().astype(int)
+    
+    # Sort by F1 score descending
+    sorted_df = display_df.sort_values('f1_avg', ascending=False)
+    
+    # Select only the relevant columns
+    cols = ['algorithm', 'dataset', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+    sorted_df = sorted_df[cols]
+    
+    # Rename columns for better readability
+    sorted_df.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+    
+    # Save to CSV
+    sorted_df.to_csv('report/results/full_results_by_f1.csv', index=False)
+    # Save table to LaTeX format
+    with open('report/results/full_results_by_f1.tex', 'w') as tf:
+        latex_str = sorted_df.to_latex(index=False, float_format=lambda x: f"{x:.3f}")
+        # Replace the LaTeX table structure with the specified format
+        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
+        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n\\end{table*}')
+        # Remove the original table environment since we're creating our own
+        latex_str = latex_str.replace('\\begin{table}', '')
+        latex_str = latex_str.replace('\\end{table}', '')
+        # Write to file
+        tf.write(latex_str)
+    print("\nAll Results Sorted by F1-score:")
+    print(sorted_df.to_string(index=False))
+    
+    return sorted_df
+
+def create_negative_space_coverage_plot():
+    """
+    Plots negative space coverage grouped by dimension with algorithms shown side by side.
+    Creates a grouped bar chart comparing negative space coverage across algorithms and dimensions.
+    """
+    # Create directory for results if it doesn't exist
+    os.makedirs('report/results', exist_ok=True)
+    
+    # Load the data
+    csv_data = pd.read_csv('report/results/averaged_results.csv')
+    
+    # Prepare data for plotting
+    csv_data['algorithm'] = csv_data['algorithm'].replace({
+        'nsgaii': 'NSA-NSGA-II',
+        'ga': 'NSA-GA'
+    })
+    
+    # Sort by dimension
+    dim_order = {'1D': 1, '2D': 2, '3D': 3, '4D': 4}
+    csv_data['dim_order'] = csv_data['dimension'].map(dim_order)
+    csv_data = csv_data.sort_values(['dim_order', 'algorithm'])
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Set width of bars and positions
+    bar_width = 0.35
+    dimensions = sorted(csv_data['dimension'].unique(), key=lambda x: dim_order[x])
+    algorithms = csv_data['algorithm'].unique()
+    
+    # Set up x positions for grouped bars
+    x = np.arange(len(dimensions))
+    
+    # Colors for algorithms
+    colors = {'NSA-NSGA-II': 'steelblue', 'NSA-GA': 'darkred'}
+    
+    # Plot bars for each algorithm side by side
+    for i, algo in enumerate(algorithms):
+        algo_data = csv_data[csv_data['algorithm'] == algo]
+        values = []
+        
+        # Get values in dimension order
+        for dim in dimensions:
+            val = algo_data[algo_data['dimension'] == dim]['negative_space_coverage_avg'].values
+            values.append(val[0] if len(val) > 0 else 0)
+        
+        # Plot bars with offset
+        offset = (i - 0.5*(len(algorithms)-1)) * bar_width
+        bars = ax.bar(x + offset, values, bar_width * 0.9, label=algo, color=colors[algo])
+        
+        # Add value labels on top of bars
+        for j, bar in enumerate(bars):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., 
+                   height * 1.01,
+                   f'{int(height):,}', 
+                   ha='center', va='bottom', 
+                   fontsize=8, rotation=0)
+    
+    # Add labels and title
+    ax.set_xlabel(r'\textbf{Dimension}', fontsize=12)
+    ax.set_ylabel(r'\textbf{Negative Space Coverage}', fontsize=12)
+    ax.set_title(r'\textbf{Negative Space Coverage by Dimension and Algorithm}', fontsize=14)
+    
+    # Set x-axis ticks
+    ax.set_xticks(x)
+    ax.set_xticklabels(dimensions)
+    
+    # Add grid and legend
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.set_yscale('log')  # Use log scale for better visibility
+    ax.legend(loc='upper left')
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save figure
+    plt.savefig('report/results/negative_space_coverage_by_dim_algo.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('report/results/negative_space_coverage_by_dim_algo.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print("Created negative space coverage plot grouped by dimension with algorithms side by side.")
+
+# Function to create best overall metrics table
+def create_best_overall_table():
+    # Create a copy of the dataframe with algorithm names mapped
+    display_df = df.copy()
+    display_df['algorithm'] = display_df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
+    
+    # Round detectors count to nearest integer
+    display_df['detectors_count_avg'] = display_df['detectors_count_avg'].round().astype(int)
+    
+    # Get the top 5 by F1-score
+    top_f1 = display_df.sort_values('f1_avg', ascending=False).head(5)
+    
+    # Select and reorder columns
+    cols = ['algorithm', 'dataset', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+    best_metrics = top_f1[cols]
+    
+    # Rename columns for better readability (using "Dim" instead of "Dimension")
+    best_metrics.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+    
+    # Save to CSV
+    best_metrics.to_csv('report/results/top_5_f1.csv', index=False)
+    
+    # Save to LaTeX format with the specified structure
+    with open('report/results/top_5_f1.tex', 'w') as tf:
+        latex_str = best_metrics.to_latex(index=False, float_format=lambda x: f"{x:.3f}")
+        # Replace the LaTeX table structure with the specified format
+        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
+        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{Top 5 configurations by F1-score}\n\\end{table*}')
+        # Remove the original table environment since we're creating our own
+        latex_str = latex_str.replace('\\begin{table}', '')
+        latex_str = latex_str.replace('\\end{table}', '')
+        # Write to file
+        tf.write(latex_str)
+    
+    print("\nTop 5 by F1-score:")
+    print(best_metrics.to_string(index=False))
+    
+    return best_metrics
+
+# Function to create tables per embedding
+def create_per_embedding_tables():
+    datasets = df['dataset'].unique()
+    results = {}
+    
+    # Create a custom dimension order
+    dimension_order = {'1D': 0, '2D': 1, '3D': 2, '4D': 3}
+    
+    for dataset in datasets:
+        # Filter for current dataset
+        dataset_df = df[df['dataset'] == dataset].copy()
+        
+        # Map algorithm names
+        dataset_df['algorithm'] = dataset_df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
+        
+        # Round detectors count to nearest integer
+        dataset_df['detectors_count_avg'] = dataset_df['detectors_count_avg'].round().astype(int)
+        
+        # First sort by algorithm, then by dimension in custom order
+        dataset_df['dim_order'] = dataset_df['dimension'].map(dimension_order)
+        dataset_df = dataset_df.sort_values(['algorithm', 'dim_order'], ascending=[True, True])
+        dataset_df = dataset_df.drop(columns=['dim_order'])
+        
+        # Select only the relevant columns
+        cols = ['algorithm', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+        dataset_df = dataset_df[cols]
+        
+        # Rename columns for better readability
+        dataset_df.columns = ['Algorithm', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+        
+        # Save to CSV
+        dataset_df.to_csv(f'report/results/{dataset}_results.csv', index=False)
+        
+        # Save table to LaTeX format
+        with open(f'report/results/{dataset}_results.tex', 'w') as tf:
+            latex_str = dataset_df.to_latex(index=False, float_format=lambda x: f"{x:.3f}")
+            # Replace the LaTeX table structure with the specified format
+            latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
+            latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{' + dataset + ' Caption}\n\\end{table*}')
+            # Remove the original table environment since we're creating our own
+            latex_str = latex_str.replace('\\begin{table}', '')
+            latex_str = latex_str.replace('\\end{table}', '')
+            # Write to file
+            tf.write(latex_str)
+        
+        print(f"\nResults for {dataset} Embedding:")
+        print(dataset_df.to_string(index=False))
+        
+        results[dataset] = dataset_df
+    
+    return results
+
+def create_boxplot_by_dimension(column, naming):
+    """
+    Generates a LaTeX-formatted boxplot grouped by dimensionality (1D to 4D),
+    comparing all algorithm-embedding combinations. Outputs high-resolution PNG and PDF.
+    """
+
+    # Prepare DataFrame
+    display_df = df.copy()
+    display_df['algorithm'] = display_df['algorithm'].replace({
+        'nsgaii': 'NSA-NSGA-II',
+        'ga': 'NSA-GA'
+    })
+    display_df['algorithm_embedding'] = display_df['algorithm'] + ' - ' + display_df['dataset']
+
+    # Collect data per dimension
+    dimensions = ['1D', '2D', '3D', '4D']
+    boxplot_data = [display_df[display_df['dimension'] == dim][column] for dim in dimensions]
+
+    # Create figure
+    plt.figure(figsize=(6, 6))
+    bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
+
+    # Style the boxplot
+    for box in bp['boxes']:
+        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+    for whisker in bp['whiskers']:
+        whisker.set(color='black', linewidth=1)
+    for cap in bp['caps']:
+        cap.set(color='black', linewidth=1)
+    for median in bp['medians']:
+        median.set(color='black', linewidth=1.5)
+    for flier in bp['fliers']:
+        flier.set(marker='o', markersize=4, markerfacecolor='black',
+                    markeredgecolor='black', alpha=0.5)
+
+    # Add labels and layout
+    plt.xlabel(r'\textbf{Dimension}')
+    plt.ylabel(r'\textbf{' + naming + '}')
+    plt.title(r'\textbf{Impact of Dimensionality on ' + naming + '}', pad=10)
+    plt.xticks(ticks=range(1, len(dimensions) + 1), labels=dimensions)
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+
+    # Save figure
+    plt.savefig(f'report/results/{column}_boxplot_by_dimension.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_dimension.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print("Created LaTeX-styled detector count boxplot by dimension.")
+
+def create_boxplot_by_embedding(column, naming):
+    """
+    Generates a LaTeX-formatted boxplot grouped by embedding models (RoBERTa, BERT, DistilBERT, FastText),
+    comparing the algorithms. Outputs high-resolution PNG and PDF.
+    """
+
+    # Prepare DataFrame
+    display_df = df.copy()
+    display_df['algorithm'] = display_df['algorithm'].replace({
+        'nsgaii': 'NSA-NSGA-II',
+        'ga': 'NSA-GA'
+    })
+
+    # Collect data per embedding model
+    embedding_models = sorted(display_df['dataset'].unique())
+    boxplot_data = [display_df[display_df['dataset'] == model][column] for model in embedding_models]
+
+    # Create figure
+    plt.figure(figsize=(8, 6))
+    bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
+
+    # Style the boxplot
+    for box in bp['boxes']:
+        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+    for whisker in bp['whiskers']:
+        whisker.set(color='black', linewidth=1)
+    for cap in bp['caps']:
+        cap.set(color='black', linewidth=1)
+    for median in bp['medians']:
+        median.set(color='black', linewidth=1.5)
+    for flier in bp['fliers']:
+        flier.set(marker='o', markersize=4, markerfacecolor='black',
+                    markeredgecolor='black', alpha=0.5)
+
+    # Add labels and layout
+    plt.xlabel(r'\textbf{Embedding Model}')
+    plt.ylabel(r'\textbf{' + naming + '}')
+    plt.title(r'\textbf{Impact of Embedding Model on ' + naming + '}', pad=10)
+    plt.xticks(ticks=range(1, len(embedding_models) + 1), labels=embedding_models, rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+
+    # Save figure
+    plt.savefig(f'report/results/{column}_boxplot_by_embedding.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_embedding.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"Created LaTeX-styled {naming} boxplot by embedding model.")
+
+def create_boxplot_by_algorithm(column, naming):
+    """
+    Generates a LaTeX-formatted boxplot comparing the algorithms (NSA-GA and NSA-NSGA-II).
+    Shows the impact of algorithm selection on performance metrics.
+    Outputs high-resolution PNG and PDF.
+    """
+
+    # Prepare DataFrame
+    display_df = df.copy()
+    display_df['algorithm'] = display_df['algorithm'].replace({
+        'nsgaii': 'NSA-NSGA-II',
+        'ga': 'NSA-GA'
+    })
+
+    # Collect data per algorithm
+    algorithms = sorted(display_df['algorithm'].unique())
+    boxplot_data = [display_df[display_df['algorithm'] == algo][column] for algo in algorithms]
+
+    # Create figure
+    plt.figure(figsize=(6, 6))
+    bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
+
+    # Style the boxplot
+    for box in bp['boxes']:
+        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+    for whisker in bp['whiskers']:
+        whisker.set(color='black', linewidth=1)
+    for cap in bp['caps']:
+        cap.set(color='black', linewidth=1)
+    for median in bp['medians']:
+        median.set(color='black', linewidth=1.5)
+    for flier in bp['fliers']:
+        flier.set(marker='o', markersize=4, markerfacecolor='black',
+                  markeredgecolor='black', alpha=0.5)
+
+    # Add labels and layout
+    plt.xlabel(r'\textbf{Algorithm}')
+    plt.ylabel(r'\textbf{' + naming + '}')
+    plt.title(r'\textbf{Impact of Algorithm on ' + naming + '}', pad=10)
+    plt.xticks(ticks=range(1, len(algorithms) + 1), labels=algorithms)
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+
+    # Save figure
+    plt.savefig(f'report/results/{column}_boxplot_by_algorithm.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_algorithm.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"Created LaTeX-styled {naming} boxplot comparing algorithms.")
+
+def plot_f1_precision_recall_negative_space_per_detector_amount():
+    """
+    Plots the F1, precision, recall evolution and negative space coverage evolution
+    for each 25th detector, for each unique combination of algorithm, embedding model, and dimension.
+    Uses dual y-axis to show negative space coverage on the right axis.
+    Creates separate LaTeX files for each embedding model.
+    """
+    # Directory with experiment results
+    path = 'model/detector'
+    
+    # Get all experiment result files
+    files = [f for f in os.listdir(path) if 'experiment_result' in f and '-1' not in f]
+    
+    # Create directory for plots
+    os.makedirs('report/results/evolution_plots', exist_ok=True)
+    
+    # Dictionary to store data for each combination
+    evolution_data = {}
+    
+    # Process each file
+    for file_name in files:
+        # Parse file name to get algorithm, dataset, dimension
+        if 'nsgaii' in file_name:
+            algo = 'NSA-NSGA-II'
+        else:
+            algo = 'NSA-GA'
+        
+        f_split = file_name.split('_')
+        dataset = f_split[1]
+        dim = f'{f_split[2][0]}D'
+        
+        # Create unique identifier for this configuration
+        config = f"{algo}_{dataset}_{dim}"
+        
+        # Read the data
+        with open(os.path.join(path, file_name), 'r') as file:
+            data = json.load(file)
+            #print('Processing', file_name)
+            # Check if the validation lists exist and are not empty
+            if ('validation_precision_list' in data and
+                'validation_recall_list' in data and
+                'validation_negative_space_coverage_list' in data and
+                data['validation_precision_list'] and
+                data['validation_recall_list'] and
+                data['validation_negative_space_coverage_list']):
+                
+                # Get validation data
+                precision_list = data['validation_precision_list']
+                recall_list = data['validation_recall_list']
+                negative_space_list = data['validation_negative_space_coverage_list']
+                
+                # Calculate F1 scores
+                f1_list = [2 * (p * r) / (p + r) if (p + r) > 0 else 0 
+                            for p, r in zip(precision_list, recall_list)]
+                
+                # Create detector counts (every 25th detector)
+                detector_counts = [(i+1)*25 for i in range(len(precision_list))]
+                # Store the data
+                # Check if this configuration already exists
+                if config not in evolution_data:
+                    # First occurrence - store the data directly
+                    evolution_data[config] = {
+                        'dataset': dataset,
+                        'algo': algo,
+                        'dim': dim,
+                        'detector_counts': detector_counts,
+                        'precision': precision_list,
+                        'recall': recall_list,
+                        'f1': f1_list,
+                        'negative_space': negative_space_list,
+                        'test_detector_count': data['test_detectors_count'],
+                        'count': 1  # Track number of samples for averaging
+                    }
+    
+    # Create plots for each configuration with dual y-axis
+    for config, data in evolution_data.items():
+        algo = data['algo']
+        dataset = data['dataset']
+        dim = data['dim']
+        
+        # Create figure with dual y-axis
+        fig, ax1 = plt.subplots(figsize=(8, 6))
+        ax2 = ax1.twinx()
+        # Mark the final detector count used for testing with a vertical line
+        test_detector_count = data['test_detector_count']
+        ax1.axvline(x=test_detector_count, color='black', linestyle='-.', linewidth=1.5, 
+                    label=f'Convergence ({test_detector_count})')
+        # Plot F1, Precision, Recall on left axis
+        ax1.plot(data['detector_counts'], data['precision'], 'b-', label='Precision', linewidth=1.5)
+        ax1.plot(data['detector_counts'], data['recall'], 'r-', label='Recall', linewidth=1.5)
+        ax1.plot(data['detector_counts'], data['f1'], 'g-', label='F1-score', linewidth=1.5)
+        
+        # Plot Negative Space Coverage on right axis
+        ax2.plot(data['detector_counts'], data['negative_space'], 'k--', label='Negative Space', linewidth=1.5)
+        
+        # Set y-axis limits to start from the minimum value of metrics
+        min_metric = min(min(data['precision']), min(data['recall']), min(data['f1']))
+        # Add a small padding (5% of the range) to avoid cutting off plot lines
+        padding = (1.0 - min_metric) * 0.05
+        ax1.set_ylim([max(0, min_metric - padding), 1.05])
+        
+        # Find min and max for negative space to set appropriate scale
+        min_ns = min(data['negative_space'])
+        max_ns = max(data['negative_space'])
+        # Add padding to avoid overlap with the axis
+        padding = (max_ns - min_ns) * 0.1
+        ax2.set_ylim([max(0, min_ns - padding), max_ns + padding])
+        # Fix left y-axis max to 1.0
+        ax1.set_ylim([max(0, min_metric - padding), 1.0])
+        
+        # Labels and title for left axis
+        ax1.set_xlabel(r'\textbf{Number of Detectors}')
+        ax1.set_ylabel(r'\textbf{Score}')
+        
+        # Label for right axis
+        ax2.set_ylabel(r'\textbf{Negative Space Coverage}')
+        
+        # Title and grid
+        plt.title(f"\\textbf{{Performance Evolution - {algo}, {dataset}, {dim}}}")
+        ax1.grid(True, linestyle='--', alpha=0.6)
+        
+        # Legend combining both axes
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower right')
+        
+        plt.tight_layout()
+        
+        # Save the plot
+        plt.savefig(f'report/results/evolution_plots/combined_{algo}_{dataset}_{dim}.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig(f'report/results/evolution_plots/combined_{algo}_{dataset}_{dim}.png', dpi=300, bbox_inches='tight')
+        plt.close()
+    
+    # Group plots by embedding model
+    embedding_plots = {}
+    for config, data in evolution_data.items():
+        dataset = data['dataset']
+        if dataset not in embedding_plots:
+            embedding_plots[dataset] = []
+        embedding_plots[dataset].append(config)
+    
+    # Ensure the output directories exist
+    os.makedirs('report/results', exist_ok=True)
+    os.makedirs('report/results/evolution_plots', exist_ok=True)
+    
+    # Generate separate LaTeX code for each embedding model
+    for embedding, configs in embedding_plots.items():
+        plots = [f"combined_{config}.png" for config in configs]
+        
+        # Calculate number of rows needed (2 plots per row)
+        num_plots = len(plots)
+        num_rows = (num_plots + 1) // 2  # Ceiling division
+        
+        # For a one-column thesis page, we need more compact figure layout
+        latex_code = f"""
+        \\begin{{figure}}[htbp]
+        \\centering"""
+        
+        # Add each subfigure with reduced spacing
+        for i, plot in enumerate(plots):
+            config = plot.replace('combined_', '').replace('.png', '')
+            algo, _, dim = config.split('_')
+            row = i // 2
+            col = i % 2
+            
+            # Add less vertical space between rows
+            if col == 0 and i > 0:
+                latex_code += "\n    \\vspace{0.2cm}\n"
+            
+            # Make subfigures slightly smaller
+            width = "0.40"
+            
+            latex_code += f"""    \\begin{{subfigure}}[b]{{{width}\\textwidth}}
+        \\includegraphics[width=\\textwidth]{{images/plots/evolution_plots/{plot}}}
+        \\caption{{\\scriptsize {algo}, {dim}}}
+        \\label{{subfig:{embedding}_{algo}_{dim}}}
+        \\end{{subfigure}}"""
+            
+            # Less horizontal space between columns
+            if col < 1 and i < num_plots - 1:
+                latex_code += "\\hspace{0.05\\textwidth}\n"
+            else:
+                latex_code += "\n"
+            
+        # More compact caption
+        latex_code += f"""    \\caption{{\\small Example runs showing performance metrics and negative space coverage for NSA-GA and NSGA-II for {embedding}.}}
+        \\label{{fig:evolution_plots_{embedding}}}
+        \\end{{figure}}
+        """
+        # Ensure the directory exists
+        os.makedirs('report/results', exist_ok=True)
+        
+        # Save LaTeX code to file
+        with open(f'report/results/evolution_plots/evolution_plots_{embedding}_figure.tex', 'w') as f:
+            f.write(latex_code)
+            
+    print(f"Created combined evolution plots for {len(evolution_data)} configurations.")
+    print(f"Created separate LaTeX files for {len(embedding_plots)} embedding models.")
+
+
+def plot_detector_models():
+    """
+    Plots all existing detector models from auto.json files.
+    Executes the algorithm for each detector file without creating new detectors.
+    Covers all algorithms, embedding models, and dimensions.
+    """
+    
+    # Find all auto.json detector files
+    detector_files = glob.glob('model/detector/*_auto_0.json')
+
+    print(f"Found {len(detector_files)} detector files to plot")
+    
+    for detector_file in detector_files:
+        
+        # Parse filename to extract parameters
+        filename = os.path.basename(detector_file)
+        parts = filename.split('_')
+        detector_file = detector_file.replace('\\', '/')
+        # Remove "_0" from the detector filename if it exists
+        if detector_file.endswith('_0.json'):
+            detector_file = detector_file[:-7] + '.json'
+        # Extract information from filename
+        if 'fasttext' in filename:
+            model = 'fasttext'
+        elif 'roberta' in filename:
+            model = 'roberta-base'
+        elif 'distilbert' in filename:
+            model = 'distilbert-base-cased'
+        elif 'bert' in filename:
+            model = 'bert-base-cased'
+        else:
+            print(f"Unknown model type in {filename}, skipping")
+            continue
+            
+        # Extract dimension
+        for part in parts:
+            if 'dim' in part:
+                dim = part.replace('dim', '')
+                break
+        else:
+            print(f"Could not determine dimension from {filename}, skipping")
+            continue
+            
+        # Determine algorithm
+        if 'nsgaii' in filename:
+            algorithm = 'nsgaii'
+        else:
+            algorithm = 'ga'
+            
+        # Construct dataset path
+        dimensions = parts[2]  # e.g., "2dim"
+        suffix = '_'.join(parts[3:-2])  # e.g., "15_25700_21417"
+        dataset_path = f"dataset/ISOT/True_Fake_{model}_umap_{dimensions}_15_25700_21417.h5"
+        
+        # Construct command
+        command = [
+            "python",
+            f"./{algorithm}_nsa.py",
+            f"--dim={dim}",
+            f"--dataset={dataset_path}",
+            f"--detectorset={detector_file}",
+            "--amount=0",  # Don't create new detectors
+            "--convergence_every=25",
+            "--self_region=-1",
+            "--coverage=0.0005",
+            "--sample=2500",
+            "--experiment=0",
+            f"--model={model}"
+        ]
+        # Execute command
+        print(f"Executing: {' '.join(command)}")
+        try:
+            # Use sys.executable to ensure the same Python interpreter is used
+            subprocess.run([sys.executable] + command[1:], check=True)
+            time.sleep(10)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command for {detector_file}: {e}")
+        except FileNotFoundError as e:
+            print(f"File not found error: {e}")
+            print(f"File not found error: {e}")
+            
+    print("Finished plotting all detector models")
+
 # algorithm, dataset, dim, experiment no.
-'''results = {
-    'ga': {
-        'roberta-base': {
-            '1': [
-                {
-                    "precision": 0.9366197183098591,
-                    "recall": 0.7657952069716776,
-                    "true_detected": 333,
-                    "true_total": 6426,
-                    "fake_detected": 4921,
-                    "fake_total": 6426,
-                    "negative_space_coverage": 22.23471745952702,
-                    "time_to_build": 746.4579837999918,
-                    "detectors_count": 1225,
-                    "time_to_infer": 48.32926679999218,
-                    "self_region": 0.000512362349768473
-                }
-            ]
-        }
-    }
+'''{
+    "test_precision": 0.9263899765074393,
+    "test_recall": 0.5522875816993464,
+    "test_f1": 0.6920152091254753,
+    "test_true_detected": 188,
+    "test_true_total": 4284,
+    "test_fake_detected": 2366,
+    "test_fake_total": 4284,
+    "test_negative_space_coverage": 375225.6265239304,
+    "test_time_to_build": 19655.375818600005,
+    "test_detectors_count": 3000,
+    "test_time_to_infer": 71.42128960002447,
+    "validation_precision_list": [
+
+    ],
+    "validation_recall_list": [
+
+    ],
+    "validation_true_detected_list": [
+
+    ],
+    "validation_fake_detected_list": [
+
+    ],
+    "validation_negative_space_coverage_list": [
+        
+    ],
+    "self_region": 0.07325451668655299,
+    "stagnation": 0
 }'''
 results = {}
 
 file_identification = 'experiment_result'
 path = 'model/detector'
+
 files = [f for f in os.listdir(path) if (file_identification in f and '-1' not in f)]
 for f in files:
     if 'nsgaii' in f:
@@ -84,7 +752,7 @@ for f in files:
 print(results)   
 
 # Prepare CSV file
-csv_file = 'results/averaged_results.csv'
+csv_file = 'report/results/averaged_results.csv'
 csv_columns = [
     'algorithm', 'dataset', 'dimension', 'precision_avg', 'precision_stdev', 'recall_avg', 'recall_stdev',
     'accuracy_avg', 'accuracy_stdev', 'f1_avg', 'f1_stdev', 'true_detected_avg', 'true_detected_stdev', 'true_total_avg', 'true_total_stdev',
@@ -158,7 +826,7 @@ df = pd.read_csv(csv_file)
 df = df.loc[:, ~df.columns.str.contains('stdev')]
 
 # Save the modified DataFrame to a new CSV file
-excel_file = 'results/averaged_results_nostdev.xlsx'
+excel_file = 'report/results/averaged_results_nostdev.xlsx'
 
 # Round all numbers to max 3 decimals
 df = df.round(3)
@@ -167,324 +835,25 @@ df.to_excel(excel_file, index=False)
 # Display the DataFrame as a table
 print(df.to_string(index=False))
 
-# format to read frp, experiment files
-{
-    "test_precision": 0.8910860012554928,
-    "test_recall": 0.6626984126984127,
-    "test_f1": 0.7601070950468541,
-    "test_true_detected": 347,
-    "test_true_total": 4284,
-    "test_fake_detected": 2839,
-    "test_fake_total": 4284,
-    "test_negative_space_coverage": 270.56578311376575,
-    "test_time_to_build": 1565.372218000004,
-    "test_detectors_count": 1475,
-    "test_time_to_infer": 41.928929599991534,
-    "validation_precision_list": [
-        0.9918962722852512,
-        0.9725050916496945,
-        0.9648814749780509,
-        0.9608626198083067,
-        0.9585571757482733,
-        0.9541984732824428,
-        0.9518613607188704,
-        0.9522946859903382,
-        0.9486594409583571,
-        0.9456404736275565,
-        0.9422476586888657,
-        0.9402390438247012,
-        0.939143135345667,
-        0.9391345696623871,
-        0.9377901578458682,
-        0.936986301369863,
-        0.9363028953229399,
-        0.9319877139096094,
-        0.9297110823630875,
-        0.9277518062048449,
-        0.9250104733975701,
-        0.9237147595356551,
-        0.9212146081247435,
-        0.9193154034229829,
-        0.9160951996772893,
-        0.9145231499802137,
-        0.9136522753792299,
-        0.9118436182445382,
-        0.9115749525616699,
-        0.9104252916823485,
-        0.9089891831406192,
-        0.9070453707119144,
-        0.906318082788671,
-        0.90465872156013,
-        0.90379113018598,
-        0.9035802906770649,
-        0.9026798307475318,
-        0.8998599439775911,
-        0.899025069637883,
-        0.8975778546712803,
-        0.897038567493113,
-        0.8959260527216707,
-        0.8935516888433982,
-        0.8930027173913043,
-        0.8921568627450981,
-        0.891545975075783,
-        0.8894472361809045,
-        0.8894789246598075,
-        0.8883751651254954,
-        0.8869908015768725,
-        0.8860510805500982,
-        0.8861709067188519,
-        0.8859649122807017,
-        0.8858713223407695,
-        0.8849871134020618,
-        0.8854667949951877,
-        0.88512,
-        0.8848852040816326,
-        0.8845419847328244
-    ],
-    "validation_recall_list": [
-        0.14289049731496614,
-        0.22297455054868084,
-        0.2565958440345552,
-        0.2808778893299089,
-        0.2916180247490077,
-        0.3210366565491478,
-        0.3462526266635536,
-        0.3681998599112771,
-        0.38827924352089654,
-        0.4102264767686201,
-        0.422834461825823,
-        0.4408125145925753,
-        0.45038524398785895,
-        0.46112537940695775,
-        0.47163203362129347,
-        0.47910343217371004,
-        0.49077749241186086,
-        0.4959140789166472,
-        0.5033854774690637,
-        0.5096894699976652,
-        0.5155265001167406,
-        0.5201961242120009,
-        0.5241653046929722,
-        0.5267335979453655,
-        0.5302358160168107,
-        0.5395750642073313,
-        0.5484473499883259,
-        0.5554517861312165,
-        0.5608218538407658,
-        0.564791034321737,
-        0.5689936960074714,
-        0.5741302825122577,
-        0.5827690870884894,
-        0.5848704179313565,
-        0.5900070044361428,
-        0.5951435909409293,
-        0.5977118841933224,
-        0.6000466962409526,
-        0.6028484706981088,
-        0.605650245155265,
-        0.6082185384076582,
-        0.6110203128648144,
-        0.6114872752743404,
-        0.6138220873219706,
-        0.6161568993696007,
-        0.6180247490077049,
-        0.619892598645809,
-        0.6257296287648845,
-        0.6280644408125146,
-        0.6303992528601448,
-        0.6318001400887229,
-        0.634368433341116,
-        0.6367032453887462,
-        0.6397385010506654,
-        0.6413728694840065,
-        0.6444081251459257,
-        0.6458090123745038,
-        0.647910343217371,
-        0.6493112304459491
-    ],
-    "validation_true_detected_list": [
-        5,
-        27,
-        40,
-        49,
-        54,
-        66,
-        75,
-        79,
-        90,
-        101,
-        111,
-        120,
-        125,
-        128,
-        134,
-        138,
-        143,
-        155,
-        163,
-        170,
-        179,
-        184,
-        192,
-        198,
-        208,
-        216,
-        222,
-        230,
-        233,
-        238,
-        244,
-        252,
-        258,
-        264,
-        269,
-        272,
-        276,
-        286,
-        290,
-        296,
-        299,
-        304,
-        312,
-        315,
-        319,
-        322,
-        330,
-        333,
-        338,
-        344,
-        348,
-        349,
-        351,
-        353,
-        357,
-        357,
-        359,
-        361,
-        363
-    ],
-    "validation_fake_detected_list": [
-        612,
-        955,
-        1099,
-        1203,
-        1249,
-        1375,
-        1483,
-        1577,
-        1663,
-        1757,
-        1811,
-        1888,
-        1929,
-        1975,
-        2020,
-        2052,
-        2102,
-        2124,
-        2156,
-        2183,
-        2208,
-        2228,
-        2245,
-        2256,
-        2271,
-        2311,
-        2349,
-        2379,
-        2402,
-        2419,
-        2437,
-        2459,
-        2496,
-        2505,
-        2527,
-        2549,
-        2560,
-        2570,
-        2582,
-        2594,
-        2605,
-        2617,
-        2619,
-        2629,
-        2639,
-        2647,
-        2655,
-        2680,
-        2690,
-        2700,
-        2706,
-        2717,
-        2727,
-        2740,
-        2747,
-        2760,
-        2766,
-        2775,
-        2781
-    ],
-    "validation_negative_space_coverage_list": [
-        259.48605386565526,
-        261.29029620974,
-        262.24610246800916,
-        262.9723768039717,
-        263.4899222962909,
-        263.93205061895844,
-        264.3892279970134,
-        264.76774944505866,
-        265.1232306254379,
-        265.4222467193124,
-        265.7031065066221,
-        265.94344325732146,
-        266.1812622296741,
-        266.4052230876976,
-        266.592270818914,
-        266.7775119520199,
-        266.95840297376105,
-        267.13337532655123,
-        267.29829186610004,
-        267.4433786244009,
-        267.5973643638148,
-        267.74360000344757,
-        267.8720574357275,
-        267.9983792332089,
-        268.1048935351691,
-        268.2230676839261,
-        268.3506488553551,
-        268.4523089961173,
-        268.5504099696273,
-        268.64020197779337,
-        268.7246146039649,
-        268.80976623508417,
-        268.9063922025935,
-        268.9932635621042,
-        269.0895828002238,
-        269.18382919385823,
-        269.2547932011949,
-        269.3230107536787,
-        269.402200337639,
-        269.4795069043911,
-        269.55063731602024,
-        269.62130819141436,
-        269.690128806862,
-        269.7516169922243,
-        269.8126480170372,
-        269.8688231408898,
-        269.92621821089693,
-        269.9865038354926,
-        270.04558574274563,
-        270.09845049729597,
-        270.15235540368883,
-        270.20615218640233,
-        270.2601108999397,
-        270.31722705966865,
-        270.36561634312244,
-        270.41191024741966,
-        270.46931921414125,
-        270.5170165444157,
-        270.56578311376575
-    ],
-    "self_region": 0.019760372698923515,
-    "stagnation": 0
-}
+# Create directories if they don't exist
+os.makedirs('results', exist_ok=True)
+
+# Create the tables
+'''best_overall = create_best_overall_table()
+per_embedding = create_per_embedding_tables()
+full_table = create_full_table_sorted_by_f1()
+create_negative_space_coverage_plot()
+create_boxplot_by_dimension('f1_avg', 'F1-score')
+create_boxplot_by_dimension('precision_avg', 'Precision')
+create_boxplot_by_dimension('recall_avg', 'Recall')
+create_boxplot_by_dimension('detectors_count_avg', 'Detectors')
+create_boxplot_by_embedding('f1_avg', 'F1-score')
+create_boxplot_by_embedding('precision_avg', 'Precision')
+create_boxplot_by_embedding('recall_avg', 'Recall')
+create_boxplot_by_embedding('detectors_count_avg', 'Detectors')
+create_boxplot_by_algorithm('f1_avg', 'F1-score')
+create_boxplot_by_algorithm('precision_avg', 'Precision')
+create_boxplot_by_algorithm('recall_avg', 'Recall')
+create_boxplot_by_algorithm('detectors_count_avg', 'Detectors')
+plot_f1_precision_recall_negative_space_per_detector_amount()'''
+plot_detector_models()

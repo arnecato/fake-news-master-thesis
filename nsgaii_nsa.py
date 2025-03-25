@@ -384,6 +384,7 @@ def main():
     parser.add_argument('--coverage', type=float, default=0.005, help='Increase in coverage threshold for deciding convergence')
     parser.add_argument('--auto', type=int, default=0, help='Whether to run in auto mode (0 for False, 1 for True)')
     parser.add_argument('--experiment', type=int, default=-1, help='Experiment number')
+    parser.add_argument('--model', type=str, help='Model name')
     args = parser.parse_args()
 
 
@@ -425,119 +426,117 @@ def main():
             print(f"Auto experiment, building mature detector set from scratch > {args.detectorset}")
     
     if not(args.auto == 1 and os.path.exists(experiment_filepath)):
-        #TODO: make population size hyperparameter (args.pop_size)
         nsga_nsa = NSGAII_Negative_Selection(args.dim, 20, args.self_region_rate, true_training_df, dset, 'euclidean', args.self_region)
-        stagnation = 0
-        best_validation_f1 = 0
-        best_dset = DetectorSet([])
-        validation_true_detected_list = []
-        validation_fake_detected_list = []
-        validation_precision_list = []
-        validation_recall_list = []
-        validation_negative_space_coverage_list = []
-        convergence_checked_already = []
-        time0 = time.perf_counter()
-        while len(dset.detectors) < args.amount:
-            pareto_fronts = nsga_nsa.evolve_detector(3, pop_check_ratio=1) 
-            best_f1 = 0
-            new_detector = None
-            for i, front in enumerate(pareto_fronts):
-                #print('Front:', i)
-                for detector in front.individuals:
-                    if i == 0: # pareto front 0 is the best front
-                        #print('Front 0 - Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
-                        if detector.f1 > best_f1:
-                            best_f1 = detector.f1
-                            new_detector = detector
-            #new_detector = pareto_fronts[0].individuals[-1]
-            if new_detector is not None:
-                if new_detector.f1 > 0:
-                    dset.detectors.append(new_detector)
-                    print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2, len(dset.detectors))        
-                else:
-                    print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2, len(dset.detectors)) 
-                    print('Detector not added, f1 < 0! -----------------------------------------------------------------------------------------! ')
-            else:
-                print('No detector found ------------------------------------------------------------------------------------------------------- !')
-            
-            # check for convergence
-            if len(dset.detectors) % args.convergence_every == 0:
-                dset.save_to_file(args.detectorset)    
-
-                if len(dset.detectors) not in convergence_checked_already:
-                    # validation check
-                    print('Checking f1 on validation and convergence')
-                    true_validation_detected, true_validation_total = nsga_nsa.detect(true_validation_df, dset, len(dset.detectors))
-                    fake_validation_detected, fake_validation_total = nsga_nsa.detect(fake_validation_df, dset, len(dset.detectors))
-                    f1_validation = f1_score(fake_validation_detected, true_validation_detected, fake_validation_total - fake_validation_detected)
-                    validation_negative_space_coverage_list.append(total_detector_hypersphere_volume(dset))
-                    validation_true_detected_list.append(true_validation_detected)
-                    validation_fake_detected_list.append(fake_validation_detected)
-                    validation_precision_list.append(precision(fake_validation_detected, true_validation_detected))
-                    validation_recall_list.append(recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
-                    if f1_validation > best_validation_f1:
-                        best_validation_f1 = f1_validation
-                        best_dset.detectors =  dset.detectors.copy()
-                        stagnation = 0
-                        print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
+        if args.auto == 1:
+            stagnation = 0
+            best_validation_f1 = 0
+            best_dset = DetectorSet([])
+            validation_true_detected_list = []
+            validation_fake_detected_list = []
+            validation_precision_list = []
+            validation_recall_list = []
+            validation_negative_space_coverage_list = []
+            convergence_checked_already = []
+            time0 = time.perf_counter()
+            while len(dset.detectors) < args.amount:
+                pareto_fronts = nsga_nsa.evolve_detector(3, pop_check_ratio=1) 
+                best_f1 = 0
+                new_detector = None
+                for i, front in enumerate(pareto_fronts):
+                    #print('Front:', i)
+                    for detector in front.individuals:
+                        if i == 0: # pareto front 0 is the best front
+                            #print('Front 0 - Detector:', detector.vector, detector.radius, detector.f1, detector.f2)
+                            if detector.f1 > best_f1:
+                                best_f1 = detector.f1
+                                new_detector = detector
+                #new_detector = pareto_fronts[0].individuals[-1]
+                if new_detector is not None:
+                    if new_detector.f1 > 0:
+                        dset.detectors.append(new_detector)
+                        print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2, len(dset.detectors))        
                     else:
-                        stagnation += 1
-                        print('Stagnation', stagnation)
-                        print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
-                        if stagnation >= 5:
-                            print('Early stopping', best_validation_f1, len(best_dset.detectors))
-                            break   
-                    # make sure we do not check convergence again for this exact amount of detectors
-                    convergence_checked_already.append(len(dset.detectors))     
-                     
-        time_to_build = time.perf_counter() - time0
-        print('Total time to build model:', time_to_build)
-        if best_dset is not None and len(best_dset.detectors) > 1:
-            best_dset.save_to_file(args.detectorset)
-        dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
-        print('Detectors:', len(dset.detectors))
-    
-        # generate test results        
-        time0 = time.perf_counter()
-        true_detected, true_total = nsga_nsa.detect(true_test_df, best_dset, len(best_dset.detectors))
-        fake_detected, fake_total = nsga_nsa.detect(fake_test_df, best_dset, len(best_dset.detectors))
-        test_time_to_infer = time.perf_counter() - time0
-        #true_detected_list.append(true_detected)
-        #fake_detected_list.append(fake_detected)
-        #precision_list.append(precision(fake_detected, true_detected))
-        #recall_list.append(recall(fake_detected, fake_total - fake_detected))
-        print('Test Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
+                        print('Picking detector from pareto front', new_detector.vector, new_detector.radius, new_detector.f1, new_detector.f2, len(dset.detectors)) 
+                        print('Detector not added, f1 < 0! -----------------------------------------------------------------------------------------! ')
+                else:
+                    print('No detector found ------------------------------------------------------------------------------------------------------- !')
+                
+                # check for convergence
+                if len(dset.detectors) % args.convergence_every == 0:
+                    dset.save_to_file(args.detectorset)    
 
-        results = {
-            "test_precision": precision(fake_detected, true_detected),
-            "test_recall": recall(fake_detected, fake_total - fake_detected),
-            "test_f1": f1_score(fake_detected, true_detected, fake_total - fake_detected),
-            "test_true_detected": true_detected,
-            "test_true_total": true_total,
-            "test_fake_detected": fake_detected,
-            "test_fake_total": fake_total,
-            "test_negative_space_coverage": total_detector_hypersphere_volume(best_dset),
-            "test_time_to_build": time_to_build,
-            "test_detectors_count": len(best_dset.detectors),
-            "test_time_to_infer": test_time_to_infer,
-            "validation_precision_list": validation_precision_list,
-            "validation_recall_list": validation_recall_list,
-            "validation_true_detected_list": validation_true_detected_list,
-            "validation_fake_detected_list": validation_fake_detected_list,
-            "validation_negative_space_coverage_list": validation_negative_space_coverage_list,
-            "self_region": nsga_nsa.self_region,
-            "stagnation": stagnation
-        }
+                    if len(dset.detectors) not in convergence_checked_already:
+                        # validation check
+                        print('Checking f1 on validation and convergence')
+                        true_validation_detected, true_validation_total = nsga_nsa.detect(true_validation_df, dset, len(dset.detectors))
+                        fake_validation_detected, fake_validation_total = nsga_nsa.detect(fake_validation_df, dset, len(dset.detectors))
+                        f1_validation = f1_score(fake_validation_detected, true_validation_detected, fake_validation_total - fake_validation_detected)
+                        validation_negative_space_coverage_list.append(total_detector_hypersphere_volume(dset))
+                        validation_true_detected_list.append(true_validation_detected)
+                        validation_fake_detected_list.append(fake_validation_detected)
+                        validation_precision_list.append(precision(fake_validation_detected, true_validation_detected))
+                        validation_recall_list.append(recall(fake_validation_detected, fake_validation_total - fake_validation_detected))
+                        if f1_validation > best_validation_f1:
+                            best_validation_f1 = f1_validation
+                            best_dset.detectors =  dset.detectors.copy()
+                            stagnation = 0
+                            print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
+                        else:
+                            stagnation += 1
+                            print('Stagnation', stagnation)
+                            print('Validation Precision:', precision(fake_validation_detected, true_validation_detected), 'Recall', recall(fake_validation_detected, fake_validation_total - fake_validation_detected), 'F1:', f1_validation)    
+                            if stagnation >= 5:
+                                print('Early stopping', best_validation_f1, len(best_dset.detectors))
+                                break   
+                        # make sure we do not check convergence again for this exact amount of detectors
+                        convergence_checked_already.append(len(dset.detectors))     
+                        
+            time_to_build = time.perf_counter() - time0
+            print('Total time to build model:', time_to_build)
+            if best_dset is not None and len(best_dset.detectors) > 1:
+                best_dset.save_to_file(args.detectorset)
+            dset = DetectorSet.load_from_file(args.detectorset, compute_fitness)
+            print('Detectors:', len(dset.detectors))
+        
+            # generate test results        
+            time0 = time.perf_counter()
+            true_detected, true_total = nsga_nsa.detect(true_test_df, best_dset, len(best_dset.detectors))
+            fake_detected, fake_total = nsga_nsa.detect(fake_test_df, best_dset, len(best_dset.detectors))
+            test_time_to_infer = time.perf_counter() - time0
+            #true_detected_list.append(true_detected)
+            #fake_detected_list.append(fake_detected)
+            #precision_list.append(precision(fake_detected, true_detected))
+            #recall_list.append(recall(fake_detected, fake_total - fake_detected))
+            print('Test Precision:', precision(fake_detected, true_detected), 'Recall', recall(fake_detected, fake_total - fake_detected))
 
-        with open(experiment_filepath, 'w') as f:
-            json.dump(results, f, indent=4)
+            results = {
+                "test_precision": precision(fake_detected, true_detected),
+                "test_recall": recall(fake_detected, fake_total - fake_detected),
+                "test_f1": f1_score(fake_detected, true_detected, fake_total - fake_detected),
+                "test_true_detected": true_detected,
+                "test_true_total": true_total,
+                "test_fake_detected": fake_detected,
+                "test_fake_total": fake_total,
+                "test_negative_space_coverage": total_detector_hypersphere_volume(best_dset),
+                "test_time_to_build": time_to_build,
+                "test_detectors_count": len(best_dset.detectors),
+                "test_time_to_infer": test_time_to_infer,
+                "validation_precision_list": validation_precision_list,
+                "validation_recall_list": validation_recall_list,
+                "validation_true_detected_list": validation_true_detected_list,
+                "validation_fake_detected_list": validation_fake_detected_list,
+                "validation_negative_space_coverage_list": validation_negative_space_coverage_list,
+                "self_region": nsga_nsa.self_region,
+                "stagnation": stagnation
+            }
 
-        true_plot_df = true_training_df #true_test_df # real_test_set_df
-        fake_plot_df = fake_training_df
-        if args.auto == 0:
+            with open(experiment_filepath, 'w') as f:
+                json.dump(results, f, indent=4)
+        else:
+            true_plot_df = true_training_df #true_test_df # real_test_set_df
+            fake_plot_df = fake_training_df
             if args.dim == 2:
-                visualize_2d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)
-
+                visualize_2d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region, 'nsa-nsga-ii', args.model)
             if args.dim == 3:
                 visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)      
     else:

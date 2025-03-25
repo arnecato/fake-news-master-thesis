@@ -1,0 +1,6 @@
+Algorithm,Embedding,Dim,F1-score,Precision,Recall,Accuracy,Detectors
+NSA-NSGA-II,roberta-base,1D,0.994,0.989,0.999,0.994,58
+NSA-GA,roberta-base,1D,0.993,0.987,0.999,0.993,67
+NSA-NSGA-II,roberta-base,2D,0.981,0.977,0.985,0.981,225
+NSA-NSGA-II,roberta-base,4D,0.978,0.979,0.977,0.978,542
+NSA-GA,roberta-base,2D,0.977,0.978,0.976,0.977,250

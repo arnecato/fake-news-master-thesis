@@ -4,7 +4,15 @@ import plotly.io as pio
 import matplotlib.pyplot as plt
 import math
 from scipy.spatial import Voronoi
-
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.size": 12,
+    "axes.labelsize": 12,
+    "xtick.labelsize": 10,
+    "ytick.labelsize": 10,
+    "legend.fontsize": 10
+})
 
 # Create 1D visualization
 def visualize_1d(true_df, fake_df, detector_set, self_region):
@@ -26,7 +34,7 @@ def visualize_1d(true_df, fake_df, detector_set, self_region):
     plt.show()
 
 # Create 2D visualization
-def visualize_2d(true_df, fake_df, detector_set, self_region):
+def visualize_2d_old(true_df, fake_df, detector_set, self_region):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
@@ -47,6 +55,64 @@ def visualize_2d(true_df, fake_df, detector_set, self_region):
     plt.scatter(detector_positions[:, 0], detector_positions[:, 1], color='green', label='Detectors', alpha=0.25)
     plt.legend()
     plt.show()
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
+    detector_positions = np.array([detector.vector for detector in detector_set.detectors])
+    true_cluster = np.array(true_df['vector'].tolist())
+    fake_cluster = np.array(fake_df['vector'].tolist())
+
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=300)  # Adjusted size and high-res for print
+
+    # True data points
+    ax.scatter(true_cluster[:, 0], true_cluster[:, 1], 
+               s=20, color='blue', alpha=0.25, label="Real News")
+
+    # Fake data points
+    ax.scatter(fake_cluster[:, 0], fake_cluster[:, 1], 
+               s=20, color='red', alpha=0.25, label="Fake News")
+
+    # Detectors
+    ax.scatter(detector_positions[:, 0], detector_positions[:, 1],
+               s=20, color='green', alpha=0.25, label='Detector')
+
+    # Detector circles
+    for detector in detector_set.detectors:
+        detector_circle = plt.Circle(detector.vector, detector.radius,
+                                     color='green', fill=False,
+                                     linestyle='--', linewidth=0.5, alpha=0.25)
+        ax.add_artist(detector_circle)
+
+    # Self-region circles
+    for self_vector in true_cluster:
+        self_circle = plt.Circle(self_vector, self_region,
+                                 color='blue', fill=False,
+                                 linestyle='--', linewidth=0.5, alpha=0.25)
+        ax.add_artist(self_circle)
+
+    # Aesthetic adjustments
+    ax.set_aspect('equal')
+    ax.grid(True, linestyle='--', linewidth=0.5)
+    
+    # Title formatting
+    ax.set_title(rf'{algo} {embedding} - Detector visualization', fontsize=14, fontweight='bold')
+    
+    # Ticks formatting
+    import matplotlib.ticker as ticker
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+    
+    ax.legend(loc='best', fontsize=10)
+    
+    plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_2D_plot.png', 
+                bbox_inches='tight', format='png')  # Save as vector format
+    
+
 
 # Function to generate points for a sphere around a detector
 def create_sphere(center, radius, resolution=20):

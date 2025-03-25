@@ -1,0 +1,6 @@
+Comment,Embedding,Dimension,Algorithm,F1-score,Precision,Recall,Accuracy,Detectors
+Best F1-score,roberta-base,1D,NSA-NSGA-II,0.994,0.989,0.999,0.994,58.333
+Best Precision,roberta-base,1D,NSA-NSGA-II,0.994,0.989,0.999,0.994,58.333
+Best Recall,roberta-base,1D,NSA-GA,0.993,0.987,0.999,0.993,66.667
+Best Accuracy,roberta-base,1D,NSA-NSGA-II,0.994,0.989,0.999,0.994,58.333
+Best Detectors,roberta-base,1D,NSA-NSGA-II,0.994,0.989,0.999,0.994,58.333
