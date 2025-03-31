@@ -131,3 +131,11 @@ true_negative = np.sum(fake_test_predictions == -1)
 print(f'True positive: {true_positive}, False negative: {false_negative}, False positive: {false_positive}, True negative: {true_negative}')
 print(f'Precision tp/(tp+fp): {true_positive/(true_positive+false_positive):.4f}, Recall tp/(tp+fn): {true_positive/(true_positive+false_negative):.4f}')
 
+# Create test labels and predictions for F1-score calculation
+y_test_true = np.concatenate([np.ones(len(true_test_vectors)), -1 * np.ones(len(fake_test_vectors))])
+y_test_pred = np.concatenate([true_test_predictions, fake_test_predictions])
+
+# Calculate F1-score for test set
+test_f1 = f1_score(y_test_true, y_test_pred, pos_label=1)
+print(f'F1-score for test set: {test_f1:.4f}')
+
