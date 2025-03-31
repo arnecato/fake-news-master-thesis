@@ -2,6 +2,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import math
 from scipy.spatial import Voronoi
 plt.rcParams.update({
@@ -14,24 +15,47 @@ plt.rcParams.update({
     "legend.fontsize": 10
 })
 
-# Create 1D visualization
-def visualize_1d(true_df, fake_df, detector_set, self_region):
-    detector_positions = np.array([detector.vector for detector in detector_set.detectors])
+# Create 1D visualization with academic quality
+def visualize_1d(true_df, fake_df, detector_set, self_region, algo, embedding):
+    #detector_positions = np.array([detector.vector for detector in detector_set.detectors])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
-    plt.scatter(true_cluster[:, 0], np.zeros_like(true_cluster[:, 0]), color='blue', label='True', alpha=0.25)
-    plt.scatter(fake_cluster[:, 0], np.zeros_like(fake_cluster[:, 0]), color='red', label='Fake', alpha=0.25)
-    
-    ax = plt.gca()
+
+    fig, ax = plt.subplots(figsize=(8, 1.6), dpi=300)  # Adjusted size and high-res for print
+
+    # True data intervals (self regions)
+    for self_vector in true_cluster:
+        ax.plot([self_vector[0] - self_region, self_vector[0] + self_region], 
+                [0.4, 0.4], color='blue', linewidth=1, alpha=0.75, label="Real News" if 'Real News' not in ax.get_legend_handles_labels()[1] else "")
+
+    # Fake data intervals
+    for fake_vector in fake_cluster:
+        ax.plot([fake_vector[0] - self_region, fake_vector[0] + self_region], 
+                [0.2, 0.2], color='red', linewidth=1, alpha=0.75, label="Fake News" if 'Fake News' not in ax.get_legend_handles_labels()[1] else "")
+
+    # Detector intervals
     for detector in detector_set.detectors:
-        ax.plot([detector.vector[0] - detector.radius, detector.vector[0] + detector.radius], [0, 0], color='green', linestyle='--', alpha=0.25)
-    for self_vector in true_df['vector']:
-        ax.plot([self_vector[0] - self_region, self_vector[0] + self_region], [0, 0], color='blue', linestyle='--', alpha=0.25)
-    
-    plt.title("True and Fake")
-    plt.scatter(detector_positions[:, 0], np.zeros_like(detector_positions[:, 0]), color='green', label='Detectors', alpha=0.25)
-    plt.legend()
-    plt.show()
+        ax.plot([detector.vector[0] - detector.radius, detector.vector[0] + detector.radius], 
+                [0, 0], color='green', linewidth=1, alpha=0.75, label="Detector" if 'Detector' not in ax.get_legend_handles_labels()[1] else "")
+
+    # Aesthetic adjustments
+    ax.set_yticks([0, 0.2, 0.4])
+    ax.set_yticklabels(["Detectors", "Fake News", "Real News"])
+    ax.set_ylim(-0.2, 0.6)
+    ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+
+    # Title formatting
+    algo = algo.upper()
+    embedding = embedding.upper()
+    ax.set_title(rf'{algo} {embedding} 1D Visualization', fontsize=14, fontweight='bold')
+
+    # Ticks formatting
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    plt.tight_layout()
+    plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_1D_plot.png', dpi=300,
+                bbox_inches='tight', format='png')
+    #plt.show()
 
 # Create 2D visualization
 def visualize_2d_old(true_df, fake_df, detector_set, self_region):
@@ -56,12 +80,6 @@ def visualize_2d_old(true_df, fake_df, detector_set, self_region):
     plt.legend()
     plt.show()
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors])
     true_cluster = np.array(true_df['vector'].tolist())
@@ -71,15 +89,15 @@ def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
 
     # True data points
     ax.scatter(true_cluster[:, 0], true_cluster[:, 1], 
-               s=20, color='blue', alpha=0.25, label="Real News")
+               s=0.1, color='blue', alpha=0.25, label="Real News")
 
     # Fake data points
     ax.scatter(fake_cluster[:, 0], fake_cluster[:, 1], 
-               s=20, color='red', alpha=0.25, label="Fake News")
+               s=0.1, color='red', alpha=0.25, label="Fake News")
 
     # Detectors
     ax.scatter(detector_positions[:, 0], detector_positions[:, 1],
-               s=20, color='green', alpha=0.25, label='Detector')
+               s=1, color='green', alpha=0.25, label='Detector')
 
     # Detector circles
     for detector in detector_set.detectors:
@@ -91,8 +109,8 @@ def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
     # Self-region circles
     for self_vector in true_cluster:
         self_circle = plt.Circle(self_vector, self_region,
-                                 color='blue', fill=False,
-                                 linestyle='--', linewidth=0.5, alpha=0.25)
+                                 color='blue', fill=True,
+                                 linestyle='--', linewidth=0.5, alpha=0.75)
         ax.add_artist(self_circle)
 
     # Aesthetic adjustments
@@ -100,16 +118,18 @@ def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
     ax.grid(True, linestyle='--', linewidth=0.5)
     
     # Title formatting
-    ax.set_title(rf'{algo} {embedding} - Detector visualization', fontsize=14, fontweight='bold')
+    algo = algo.upper()
+    embedding = embedding.upper()
+    ax.set_title(rf'{algo} {embedding} 2D', fontsize=14, fontweight='bold')
     
     # Ticks formatting
     import matplotlib.ticker as ticker
     ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
     
-    ax.legend(loc='best', fontsize=10)
+    ax.legend(loc='upper left', fontsize=10)
     
-    plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_2D_plot.png', 
+    plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_2D_plot.png', dpi=300,
                 bbox_inches='tight', format='png')  # Save as vector format
     
 
@@ -128,7 +148,7 @@ def create_sphere(center, radius, resolution=20):
     
     return x, y, z
 
-def visualize_3d(true_df, fake_df, detector_set, self_region, embedding_model):
+def visualize_3d(true_df, fake_df, detector_set, self_region, algo, embedding_model, postfix):
     detector_positions = np.array([detector.vector for detector in detector_set.detectors]) if detector_set.detectors else np.array([])
     true_cluster = np.array(true_df['vector'].tolist())
     fake_cluster = np.array(fake_df['vector'].tolist())
@@ -215,10 +235,15 @@ def visualize_3d(true_df, fake_df, detector_set, self_region, embedding_model):
         fig.update_layout(
             scene_camera=dict(eye=dict(x=angle[0], y=angle[1], z=angle[2]))
         )
-        pio.write_image(fig, f"report/{embedding_model}_3D_plot_angle_{i+1}.pdf", width=1200, height=1000, scale=3)
+        if postfix is not None:
+            postfix = f"_{postfix}"
+        if len(detector_set.detectors) == 0:
+            pio.write_image(fig, f"report/{algo}_{embedding_model}_3D_plot_angle_{i+1}{postfix}.png", width=1200, height=1000, scale=3)
+        else:
+            pio.write_image(fig, f"report/results/detector_plots/{algo}_{embedding_model}_3D_plot_angle_{i+1}{postfix}.png", width=1200, height=1000, scale=3)
     
     # Show the plot
-    fig.show()
+    #fig.show()
 
 def get_shared_feature_vectors(vector_a, vector_a_feature_index, vector_b, vector_b_feature_index):
     #print('vector_a_feature_index', vector_a_feature_index, 'vector_b_feature_index', vector_b_feature_index)

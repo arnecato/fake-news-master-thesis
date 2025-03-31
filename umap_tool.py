@@ -82,7 +82,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         print('Fake training size:', len(fake_training_df), 'Fake validation size:', len(fake_validation_df), 'Fake test size:', len(fake_test_df))
         # prepare dimension reducer
         # CHECK OUT THIS CODE - USE FAKE NEWS OR NOT!?
-        umap_training_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
+        umap_training_df = true_training_df #pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
         print('UMAP fitting size:', len(umap_training_df))
         dimension_reducer = umap.ParametricUMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric, spread=spread) 
         #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
@@ -165,7 +165,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
     else:
         print('File exists:', filepath, 'Skipping processing')
     
-def plot_file(filepath, true_keys, fake_keys, sample_size, embedding_model):
+def plot_file(filepath, true_keys, fake_keys, sample_size, embedding_model, postfix):
     true_df = pd.read_hdf(filepath, key=true_keys[0])
 
     for key in true_keys[1:]:
@@ -183,9 +183,9 @@ def plot_file(filepath, true_keys, fake_keys, sample_size, embedding_model):
         dim = f.attrs['dim']
         neighbors = f.attrs['neighbors']
         sample_size = f.attrs['sample_size']
-    plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model)
+    plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model, postfix)
 
-def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model):
+def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fake_keys, embedding_model, postfix):
     true_vectors = np.vstack(true_df['vector'].values)
     fake_vectors = np.vstack(fake_df['vector'].values)
     
@@ -205,13 +205,14 @@ def plot(true_df, fake_df, word_embedding, neighbors, sample_size, true_keys, fa
         
         ax.grid(True, linestyle='--', linewidth=0.5)
         ax.legend(loc='best', fontsize=10)
-        
-        plt.savefig("report/{embedding_model}_2D_plot.pdf", bbox_inches='tight', format='pdf')  # Save as vector format
+        if postfix is not None:
+            postfix = '_' + postfix
+        plt.savefig(f"report/{embedding_model}_2D_plot{postfix}.pdf", bbox_inches='tight', format='pdf')  # Save as vector format
         plt.show()
     
     elif fake_vectors.shape[1] == 3:
         dset = DetectorSet([])
-        visualize_3d(true_df, fake_df, dset, 0.01, embedding_model)
+        visualize_3d(true_df, fake_df, dset, 0.01, embedding_model, postfix)
 
 
 def main():
@@ -236,6 +237,7 @@ def main():
     plot_parser.add_argument('--fake_keys', type=str, default='fake_training,fake_validation,fake_test', help='Comma-separated list of keys for fake data')
     plot_parser.add_argument('--sample_size', type=int, default=-1, help='Sample size for the dataset')
     plot_parser.add_argument('--model', type=str, default="", help='NLP model used. To be used for filename.')
+    plot_parser.add_argument('--postfix', type=str, default='', help='Postfix for the output file name')
 
     args = parser.parse_args()
 
@@ -243,7 +245,7 @@ def main():
     if args.command == 'umap':
         reduce_dimensions(args.filepath_true, args.filepath_fake, args.dim, args.neighbors, args.word_embedding, sample_size=args.sample_size, umap_sample_size=args.umap_sample_size, min_dist=args.min_dist, postfix=args.postfix, metric=args.metric, spread=args.spread)
     elif args.command == 'plot':
-        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size, args.model)
+        plot_file(args.filepath, args.true_keys.split(','), args.fake_keys.split(','), args.sample_size, args.model, args.postfix)
     else:
         parser.print_help()
 

@@ -2,7 +2,7 @@ import numpy as np
 import random
 import itertools
 from detectors import Detector, DetectorSet
-from util import visualize_2d, visualize_3d, precision, recall, f1_score, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume, calculate_self_region, hypersphere_volume, hypersphere_overlap
+from util import visualize_1d, visualize_2d, visualize_3d, precision, recall, f1_score, euclidean_distance, calculate_radius_overlap, fast_cosine_distance_with_radius, total_detector_hypersphere_volume, calculate_self_region, hypersphere_volume, hypersphere_overlap
 import pandas as pd
 import os
 import time
@@ -533,12 +533,14 @@ def main():
             with open(experiment_filepath, 'w') as f:
                 json.dump(results, f, indent=4)
         else:
-            true_plot_df = true_training_df #true_test_df # real_test_set_df
-            fake_plot_df = fake_training_df
-            if args.dim == 2:
+            true_plot_df = true_test_df #true_training_df #true_test_df # real_test_set_df
+            fake_plot_df = fake_test_df #fake_training_df
+            if args.dim == 1:
+                visualize_1d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region, 'nsa-nsga-ii', args.model)
+            elif args.dim == 2:
                 visualize_2d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region, 'nsa-nsga-ii', args.model)
-            if args.dim == 3:
-                visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region)      
+            elif args.dim == 3:
+                visualize_3d(true_plot_df, fake_plot_df, dset, nsga_nsa.self_region, 'nsa-nsga-ii', args.model)      
     else:
         print('Auto mode enabled and experiment results already exists. Skipping experiment.')
 if __name__ == "__main__":

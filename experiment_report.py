@@ -10,6 +10,8 @@ import glob
 import sys
 import os
 import time
+from matplotlib.patches import Patch
+
 # Use LaTeX and IEEE-style font settings
 plt.rcParams.update({
     "text.usetex": True,
@@ -33,11 +35,11 @@ def create_full_table_sorted_by_f1():
     sorted_df = display_df.sort_values('f1_avg', ascending=False)
     
     # Select only the relevant columns
-    cols = ['algorithm', 'dataset', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+    cols = ['algorithm', 'dataset', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg', 'stagnation']
     sorted_df = sorted_df[cols]
     
     # Rename columns for better readability
-    sorted_df.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+    sorted_df.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Stagnation']
     
     # Save to CSV
     sorted_df.to_csv('report/results/full_results_by_f1.csv', index=False)
@@ -59,8 +61,8 @@ def create_full_table_sorted_by_f1():
 
 def create_negative_space_coverage_plot():
     """
-    Plots negative space coverage grouped by dimension with algorithms shown side by side.
-    Creates a grouped bar chart comparing negative space coverage across algorithms and dimensions.
+    Plots negative space coverage grouped by embedding model and dimension with algorithms shown side by side.
+    Creates a grouped bar chart comparing negative space coverage across algorithms, dimensions and embeddings.
     """
     # Create directory for results if it doesn't exist
     os.makedirs('report/results', exist_ok=True)
@@ -77,18 +79,26 @@ def create_negative_space_coverage_plot():
     # Sort by dimension
     dim_order = {'1D': 1, '2D': 2, '3D': 3, '4D': 4}
     csv_data['dim_order'] = csv_data['dimension'].map(dim_order)
-    csv_data = csv_data.sort_values(['dim_order', 'algorithm'])
+    
+    # Create combined embedding-dimension label
+    csv_data['embedding_dim'] = csv_data.apply(lambda row: f"{row['dataset']}-{row['dimension']}", axis=1)
+    
+    # Sort by embedding model and dimension order
+    embedding_models = sorted(csv_data['dataset'].unique())
+    embedding_dims = []
+    for emb in embedding_models:
+        for dim in sorted(csv_data['dimension'].unique(), key=lambda x: dim_order[x]):
+            embedding_dims.append(f"{emb}-{dim}")
     
     # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(12, 6))
     
     # Set width of bars and positions
     bar_width = 0.35
-    dimensions = sorted(csv_data['dimension'].unique(), key=lambda x: dim_order[x])
     algorithms = csv_data['algorithm'].unique()
     
     # Set up x positions for grouped bars
-    x = np.arange(len(dimensions))
+    x = np.arange(len(embedding_dims))
     
     # Colors for algorithms
     colors = {'NSA-NSGA-II': 'steelblue', 'NSA-GA': 'darkred'}
@@ -98,32 +108,23 @@ def create_negative_space_coverage_plot():
         algo_data = csv_data[csv_data['algorithm'] == algo]
         values = []
         
-        # Get values in dimension order
-        for dim in dimensions:
-            val = algo_data[algo_data['dimension'] == dim]['negative_space_coverage_avg'].values
+        # Get values in embedding-dimension order
+        for emb_dim in embedding_dims:
+            val = algo_data[algo_data['embedding_dim'] == emb_dim]['negative_space_coverage_avg'].values
             values.append(val[0] if len(val) > 0 else 0)
         
         # Plot bars with offset
         offset = (i - 0.5*(len(algorithms)-1)) * bar_width
-        bars = ax.bar(x + offset, values, bar_width * 0.9, label=algo, color=colors[algo])
-        
-        # Add value labels on top of bars
-        for j, bar in enumerate(bars):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., 
-                   height * 1.01,
-                   f'{int(height):,}', 
-                   ha='center', va='bottom', 
-                   fontsize=8, rotation=0)
+        ax.bar(x + offset, values, bar_width * 0.9, label=algo, color=colors[algo])
     
     # Add labels and title
-    ax.set_xlabel(r'\textbf{Dimension}', fontsize=12)
+    ax.set_xlabel(r'\textbf{Embedding Model and Dimension}', fontsize=12)
     ax.set_ylabel(r'\textbf{Negative Space Coverage}', fontsize=12)
-    ax.set_title(r'\textbf{Negative Space Coverage by Dimension and Algorithm}', fontsize=14)
+    ax.set_title(r'\textbf{Negative Space Coverage by Algorithm for Embedding Models and Dimensions}', fontsize=14)
     
     # Set x-axis ticks
     ax.set_xticks(x)
-    ax.set_xticklabels(dimensions)
+    ax.set_xticklabels(embedding_dims, rotation=45, ha='right', fontsize=9)
     
     # Add grid and legend
     ax.grid(axis='y', linestyle='--', alpha=0.7)
@@ -134,16 +135,16 @@ def create_negative_space_coverage_plot():
     plt.tight_layout()
     
     # Save figure
-    plt.savefig('report/results/negative_space_coverage_by_dim_algo.pdf', format='pdf', bbox_inches='tight')
-    plt.savefig('report/results/negative_space_coverage_by_dim_algo.png', dpi=300, bbox_inches='tight')
+    plt.savefig('report/results/negative_space_coverage_by_embdim_algo.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('report/results/negative_space_coverage_by_embdim_algo.png', dpi=300, bbox_inches='tight')
     plt.close()
     
-    print("Created negative space coverage plot grouped by dimension with algorithms side by side.")
+    print("Created negative space coverage plot.")
 
 # Function to create best overall metrics table
 def create_best_overall_table():
     # Create a copy of the dataframe with algorithm names mapped
-    display_df = df.copy()
+    display_df = pd.read_csv('report/results/averaged_results.csv')
     display_df['algorithm'] = display_df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
     
     # Round detectors count to nearest integer
@@ -152,35 +153,54 @@ def create_best_overall_table():
     # Get the top 5 by F1-score
     top_f1 = display_df.sort_values('f1_avg', ascending=False).head(5)
     
+    # Combine F1-score and F1-std into a single column
+    top_f1['F1-score'] = top_f1.apply(lambda row: f"{row['f1_avg']:.3f} $\\pm$ {row['f1_stdev'] * 100:.2f}\\%", axis=1)
+    
+    # Combine Precision and Precision-std into a single column
+    top_f1['Precision'] = top_f1.apply(lambda row: f"{row['precision_avg']:.3f} $\\pm$ {row['precision_stdev'] * 100:.2f}\\%", axis=1)
+    
+    # Combine Recall and Recall-std into a single column
+    top_f1['Recall'] = top_f1.apply(lambda row: f"{row['recall_avg']:.3f} $\\pm$ {row['recall_stdev'] * 100:.2f}\\%", axis=1)
+    
+    # Combine Accuracy and Accuracy-std into a single column
+    top_f1['Accuracy'] = top_f1.apply(lambda row: f"{row['accuracy_avg']:.3f} $\\pm$ {row['accuracy_stdev'] * 100:.2f}\\%", axis=1)
+    
+    # Combine Detectors and Detectors-std into a single column
+    top_f1['Detectors'] = top_f1.apply(lambda row: f"{row['detectors_count_avg']} $\\pm$ {row['detectors_count_stdev']:.1f}", axis=1)
+    
+    # Convert stagnation to Y/N (Y if 5, N otherwise)
+    top_f1['Compl. runs'] = top_f1['stagnation'].apply(lambda x: 'Y' if x == 5 else 'N')
+    
     # Select and reorder columns
-    cols = ['algorithm', 'dataset', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+    cols = ['algorithm', 'dataset', 'dimension', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
     best_metrics = top_f1[cols]
     
     # Rename columns for better readability (using "Dim" instead of "Dimension")
-    best_metrics.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+    best_metrics.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
     
     # Save to CSV
     best_metrics.to_csv('report/results/top_5_f1.csv', index=False)
     
     # Save to LaTeX format with the specified structure
     with open('report/results/top_5_f1.tex', 'w') as tf:
-        latex_str = best_metrics.to_latex(index=False, float_format=lambda x: f"{x:.3f}")
+        latex_str = best_metrics.to_latex(index=False, escape=False)
         # Replace the LaTeX table structure with the specified format
         latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
-        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{Top 5 configurations by F1-score}\n\\end{table*}')
+        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{Top five combinations by F1-score with standard deviation}\n    \\label{tab:top_5_f1}\n\\end{table*}')
         # Remove the original table environment since we're creating our own
         latex_str = latex_str.replace('\\begin{table}', '')
         latex_str = latex_str.replace('\\end{table}', '')
         # Write to file
         tf.write(latex_str)
     
-    print("\nTop 5 by F1-score:")
+    print("\nTop 5 by F1-score with standard deviation.")
     print(best_metrics.to_string(index=False))
     
     return best_metrics
 
 # Function to create tables per embedding
 def create_per_embedding_tables():
+    df = pd.read_csv('report/results/averaged_results.csv')
     datasets = df['dataset'].unique()
     results = {}
     
@@ -197,27 +217,45 @@ def create_per_embedding_tables():
         # Round detectors count to nearest integer
         dataset_df['detectors_count_avg'] = dataset_df['detectors_count_avg'].round().astype(int)
         
+        # Combine F1-score and F1-std into a single column
+        dataset_df['F1-score'] = dataset_df.apply(lambda row: f"{row['f1_avg']:.3f} $\\pm$ {row['f1_stdev'] * 100:.2f}\\%", axis=1)
+        
+        # Combine Precision and Precision-std into a single column
+        dataset_df['Precision'] = dataset_df.apply(lambda row: f"{row['precision_avg']:.3f} $\\pm$ {row['precision_stdev'] * 100:.2f}\\%", axis=1)
+        
+        # Combine Recall and Recall-std into a single column
+        dataset_df['Recall'] = dataset_df.apply(lambda row: f"{row['recall_avg']:.3f} $\\pm$ {row['recall_stdev'] * 100:.2f}\\%", axis=1)
+        
+        # Combine Accuracy and Accuracy-std into a single column
+        dataset_df['Accuracy'] = dataset_df.apply(lambda row: f"{row['accuracy_avg']:.3f} $\\pm$ {row['accuracy_stdev'] * 100:.2f}\\%", axis=1)
+        
+        # Combine Detectors and Detectors-std into a single column
+        dataset_df['Detectors'] = dataset_df.apply(lambda row: f"{row['detectors_count_avg']} $\\pm$ {row['detectors_count_stdev']:.1f}", axis=1)
+        
+        # Convert stagnation to Y/N (Y if 5, N otherwise)
+        dataset_df['Compl. runs'] = dataset_df['stagnation'].apply(lambda x: 'Y' if x == 5 else 'N')
+        
         # First sort by algorithm, then by dimension in custom order
         dataset_df['dim_order'] = dataset_df['dimension'].map(dimension_order)
         dataset_df = dataset_df.sort_values(['algorithm', 'dim_order'], ascending=[True, True])
         dataset_df = dataset_df.drop(columns=['dim_order'])
         
         # Select only the relevant columns
-        cols = ['algorithm', 'dimension', 'f1_avg', 'precision_avg', 'recall_avg', 'accuracy_avg', 'detectors_count_avg']
+        cols = ['algorithm', 'dimension', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
         dataset_df = dataset_df[cols]
         
         # Rename columns for better readability
-        dataset_df.columns = ['Algorithm', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors']
+        dataset_df.columns = ['Algorithm', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
         
         # Save to CSV
         dataset_df.to_csv(f'report/results/{dataset}_results.csv', index=False)
         
         # Save table to LaTeX format
         with open(f'report/results/{dataset}_results.tex', 'w') as tf:
-            latex_str = dataset_df.to_latex(index=False, float_format=lambda x: f"{x:.3f}")
+            latex_str = dataset_df.to_latex(index=False, escape=False)
             # Replace the LaTeX table structure with the specified format
             latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
-            latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{' + dataset + ' Caption}\n\\end{table*}')
+            latex_str = latex_str.replace('\\end{tabular}', f'\\end{{tabular}}\n    }}\n    \\caption{{Performance metrics for the {dataset} embedding model.}}\n    \\label{{tab:{dataset}_results}}\n\\end{{table*}}')
             # Remove the original table environment since we're creating our own
             latex_str = latex_str.replace('\\begin{table}', '')
             latex_str = latex_str.replace('\\end{table}', '')
@@ -593,77 +631,133 @@ def plot_detector_models():
     print(f"Found {len(detector_files)} detector files to plot")
     
     for detector_file in detector_files:
-        
-        # Parse filename to extract parameters
-        filename = os.path.basename(detector_file)
-        parts = filename.split('_')
-        detector_file = detector_file.replace('\\', '/')
-        # Remove "_0" from the detector filename if it exists
-        if detector_file.endswith('_0.json'):
-            detector_file = detector_file[:-7] + '.json'
-        # Extract information from filename
-        if 'fasttext' in filename:
-            model = 'fasttext'
-        elif 'roberta' in filename:
-            model = 'roberta-base'
-        elif 'distilbert' in filename:
-            model = 'distilbert-base-cased'
-        elif 'bert' in filename:
-            model = 'bert-base-cased'
-        else:
-            print(f"Unknown model type in {filename}, skipping")
-            continue
+        if '3dim' not in detector_file:
+            # Parse filename to extract parameters
+            filename = os.path.basename(detector_file)
+            parts = filename.split('_')
+            detector_file = detector_file.replace('\\', '/')
+            # Remove "_0" from the detector filename if it exists
+            if detector_file.endswith('_0.json'):
+                detector_file = detector_file[:-7] + '.json'
+            # Extract information from filename
+            if 'fasttext' in filename:
+                model = 'fasttext'
+            elif 'roberta' in filename:
+                model = 'roberta-base'
+            elif 'distilbert' in filename:
+                model = 'distilbert-base-cased'
+            elif 'bert' in filename:
+                model = 'bert-base-cased'
+            else:
+                print(f"Unknown model type in {filename}, skipping")
+                continue
+                
+            # Extract dimension
+            for part in parts:
+                if 'dim' in part:
+                    dim = part.replace('dim', '')
+                    break
+            else:
+                print(f"Could not determine dimension from {filename}, skipping")
+                continue
+                
+            # Determine algorithm
+            if 'nsgaii' in filename:
+                algorithm = 'nsgaii'
+            else:
+                algorithm = 'ga'
+                
+            # Construct dataset path
+            dimensions = parts[2]  # e.g., "2dim"
+            suffix = '_'.join(parts[3:-2])  # e.g., "15_25700_21417"
+            dataset_path = f"dataset/ISOT/True_Fake_{model}_umap_{dimensions}_15_25700_21417.h5"
             
-        # Extract dimension
-        for part in parts:
-            if 'dim' in part:
-                dim = part.replace('dim', '')
-                break
-        else:
-            print(f"Could not determine dimension from {filename}, skipping")
-            continue
-            
-        # Determine algorithm
-        if 'nsgaii' in filename:
-            algorithm = 'nsgaii'
-        else:
-            algorithm = 'ga'
-            
-        # Construct dataset path
-        dimensions = parts[2]  # e.g., "2dim"
-        suffix = '_'.join(parts[3:-2])  # e.g., "15_25700_21417"
-        dataset_path = f"dataset/ISOT/True_Fake_{model}_umap_{dimensions}_15_25700_21417.h5"
-        
-        # Construct command
-        command = [
-            "python",
-            f"./{algorithm}_nsa.py",
-            f"--dim={dim}",
-            f"--dataset={dataset_path}",
-            f"--detectorset={detector_file}",
-            "--amount=0",  # Don't create new detectors
-            "--convergence_every=25",
-            "--self_region=-1",
-            "--coverage=0.0005",
-            "--sample=2500",
-            "--experiment=0",
-            f"--model={model}"
-        ]
-        # Execute command
-        print(f"Executing: {' '.join(command)}")
-        try:
-            # Use sys.executable to ensure the same Python interpreter is used
-            subprocess.run([sys.executable] + command[1:], check=True)
-            time.sleep(10)
-        except subprocess.CalledProcessError as e:
-            print(f"Error executing command for {detector_file}: {e}")
-        except FileNotFoundError as e:
-            print(f"File not found error: {e}")
-            print(f"File not found error: {e}")
-            
-    print("Finished plotting all detector models")
+            # Construct command
+            command = [
+                "python",
+                f"./{algorithm}_nsa.py",
+                f"--dim={dim}",
+                f"--dataset={dataset_path}",
+                f"--detectorset={detector_file}",
+                "--amount=0",  # Don't create new detectors
+                "--convergence_every=25",
+                "--self_region=-1",
+                "--coverage=0.0005",
+                "--sample=-12500",
+                "--experiment=0",
+                f"--model={model}"
+            ]
+            # Execute command
+            print(f"Executing: {' '.join(command)}")
+            try:
+                # Use sys.executable to ensure the same Python interpreter is used
+                subprocess.run([sys.executable] + command[1:], check=True)
+                time.sleep(10)
+            except subprocess.CalledProcessError as e:
+                print(f"Error executing command for {detector_file}: {e}")
+            except FileNotFoundError as e:
+                print(f"File not found error: {e}")
+                print(f"File not found error: {e}")
+                
+        print("Finished plotting all detector models")
 
-# algorithm, dataset, dim, experiment no.
+
+def extract_stdev_values():
+    """
+    Reads the averaged_results.csv file, extracts relevant columns, renames them, and saves the results.
+    Saves the extracted stdev values to a new CSV file and generates a LaTeX table.
+    Replaces any zero values with 'N/A'.
+    """
+    # Load the CSV file into a DataFrame
+    df = pd.read_csv('report/results/averaged_results.csv')
+    
+    # Replace algorithm names for better readability
+    df['algorithm'] = df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
+    
+    # Select and rename relevant columns
+    column_mapping = {
+        'algorithm': 'Algorithm',
+        'dataset': 'Embedding',
+        'dimension': 'Dim',
+        'f1_stdev': 'F1-score',
+        'precision_stdev': 'Precision',
+        'recall_stdev': 'Recall',
+        'accuracy_stdev': 'Accuracy',
+        'detectors_count_stdev': 'Detector Count'
+    }
+    stdev_df = df[list(column_mapping.keys())].rename(columns=column_mapping)
+    
+    # Round Detector Count to the nearest integer
+    stdev_df['Detector Count'] = stdev_df['Detector Count'].round().astype(int)
+    
+    # Replace zero values with 'N/A'
+    stdev_df = stdev_df.replace(0, 'N/A')
+    
+    # Save the stdev values to a new CSV file
+    stdev_csv_file = 'report/results/averaged_results_stdev.csv'
+    stdev_df.to_csv(stdev_csv_file, index=False)
+    
+    # Save the stdev values to a LaTeX table
+    stdev_latex_file = 'report/results/averaged_results_stdev.tex'
+    with open(stdev_latex_file, 'w') as tf:
+        latex_str = stdev_df.to_latex(
+            index=False,
+            float_format=lambda x: f"{x:.4f}" if isinstance(x, (float, int)) else x,
+            column_format='l' * (len(stdev_df.columns) - 1) + 'r'  # Align Detector Count to the right
+        )
+        # Replace the LaTeX table structure with the specified format
+        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
+        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    }\n    \\caption{Variance analysis - standard deviation values for averaged performance metrics}\n    \\label{tab:stdev_values}\n\\end{table*}')
+        # Remove the original table environment since we're creating our own
+        latex_str = latex_str.replace('\\begin{table}', '')
+        latex_str = latex_str.replace('\\end{table}', '')
+        # Write to file
+        tf.write(latex_str)
+    
+    print(f"Extracted stdev values saved to {stdev_csv_file} and {stdev_latex_file}")
+    return stdev_df
+
+
 '''{
     "test_precision": 0.9263899765074393,
     "test_recall": 0.5522875816993464,
@@ -839,10 +933,10 @@ print(df.to_string(index=False))
 os.makedirs('results', exist_ok=True)
 
 # Create the tables
-'''best_overall = create_best_overall_table()
+best_overall = create_best_overall_table()
 per_embedding = create_per_embedding_tables()
-full_table = create_full_table_sorted_by_f1()
-create_negative_space_coverage_plot()
+#create_negative_space_coverage_plot()
+'''full_table = create_full_table_sorted_by_f1()
 create_boxplot_by_dimension('f1_avg', 'F1-score')
 create_boxplot_by_dimension('precision_avg', 'Precision')
 create_boxplot_by_dimension('recall_avg', 'Recall')
@@ -857,3 +951,4 @@ create_boxplot_by_algorithm('recall_avg', 'Recall')
 create_boxplot_by_algorithm('detectors_count_avg', 'Detectors')
 plot_f1_precision_recall_negative_space_per_detector_amount()'''
 plot_detector_models()
+#extract_stdev_values()

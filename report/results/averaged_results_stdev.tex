@@ -1,0 +1,46 @@
+\begin{table*}[h]
+    \centering
+    \tiny
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lllllllr}
+\toprule
+Algorithm & Embedding & Dim & F1-score & Precision & Recall & Accuracy & Detector Count \\
+\midrule
+NSA-GA & bert-base-cased & 1D & 0.0015 & 0.0084 & 0.0051 & 0.0020 & 152 \\
+NSA-GA & bert-base-cased & 2D & 0.0034 & 0.0050 & 0.0106 & 0.0022 & 229 \\
+NSA-GA & bert-base-cased & 3D & 0.0022 & 0.0024 & 0.0028 & 0.0017 & 52 \\
+NSA-GA & bert-base-cased & 4D & 0.0106 & 0.0035 & 0.0125 & 0.0065 & N/A \\
+NSA-GA & distilbert-base-cased & 1D & 0.0018 & 0.0100 & 0.0057 & 0.0023 & 103 \\
+NSA-GA & distilbert-base-cased & 2D & 0.0031 & 0.0055 & 0.0026 & 0.0033 & 127 \\
+NSA-GA & distilbert-base-cased & 3D & 0.0030 & 0.0043 & 0.0078 & 0.0023 & 313 \\
+NSA-GA & distilbert-base-cased & 4D & 0.0104 & 0.0040 & 0.0224 & 0.0088 & 336 \\
+NSA-GA & fasttext & 1D & 0.0009 & 0.0033 & 0.0014 & 0.0010 & 47 \\
+NSA-GA & fasttext & 2D & 0.0003 & 0.0041 & 0.0046 & 0.0002 & 118 \\
+NSA-GA & fasttext & 3D & 0.0054 & 0.0052 & 0.0143 & 0.0040 & 588 \\
+NSA-GA & fasttext & 4D & 0.0035 & 0.0025 & 0.0042 & 0.0031 & N/A \\
+NSA-GA & roberta-base & 1D & 0.0013 & 0.0028 & 0.0002 & 0.0013 & 26 \\
+NSA-GA & roberta-base & 2D & 0.0050 & 0.0024 & 0.0080 & 0.0049 & 39 \\
+NSA-GA & roberta-base & 3D & 0.0082 & 0.0022 & 0.0167 & 0.0075 & 131 \\
+NSA-GA & roberta-base & 4D & 0.0089 & 0.0021 & 0.0179 & 0.0079 & 159 \\
+NSA-NSGA-II & bert-base-cased & 1D & 0.0015 & 0.0030 & 0.0007 & 0.0016 & 34 \\
+NSA-NSGA-II & bert-base-cased & 2D & 0.0013 & 0.0041 & 0.0041 & 0.0013 & 169 \\
+NSA-NSGA-II & bert-base-cased & 3D & 0.0132 & 0.0068 & 0.0171 & 0.0107 & N/A \\
+NSA-NSGA-II & bert-base-cased & 4D & 0.0065 & 0.0023 & 0.0072 & 0.0039 & 26 \\
+NSA-NSGA-II & distilbert-base-cased & 1D & 0.0012 & 0.0056 & 0.0039 & 0.0013 & 47 \\
+NSA-NSGA-II & distilbert-base-cased & 2D & 0.0034 & 0.0103 & 0.0148 & 0.0026 & 221 \\
+NSA-NSGA-II & distilbert-base-cased & 3D & 0.0078 & 0.0058 & 0.0098 & 0.0075 & 149 \\
+NSA-NSGA-II & distilbert-base-cased & 4D & 0.0011 & 0.0018 & 0.0038 & 0.0009 & 297 \\
+NSA-NSGA-II & fasttext & 1D & 0.0021 & 0.0055 & 0.0025 & 0.0022 & 68 \\
+NSA-NSGA-II & fasttext & 2D & 0.0013 & 0.0051 & 0.0076 & 0.0009 & 127 \\
+NSA-NSGA-II & fasttext & 3D & 0.0064 & 0.0058 & 0.0073 & 0.0061 & 381 \\
+NSA-NSGA-II & fasttext & 4D & 0.0086 & 0.0025 & 0.0158 & 0.0077 & 175 \\
+NSA-NSGA-II & roberta-base & 1D & 0.0006 & 0.0012 & N/A & 0.0006 & 13 \\
+NSA-NSGA-II & roberta-base & 2D & 0.0032 & 0.0035 & 0.0070 & 0.0031 & 59 \\
+NSA-NSGA-II & roberta-base & 3D & 0.0056 & 0.0041 & 0.0101 & 0.0054 & 85 \\
+NSA-NSGA-II & roberta-base & 4D & 0.0017 & 0.0014 & 0.0044 & 0.0016 & 182 \\
+\bottomrule
+\end{tabular}
+    }
+    \caption{Variance analysis - standard deviation values for averaged performance metrics}
+    \label{tab:stdev_values}
+\end{table*}

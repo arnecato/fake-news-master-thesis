@@ -2,20 +2,21 @@
     \centering
     \tiny
     \resizebox{\textwidth}{!}{
-    \begin{tabular}{llrrrrr}
+    \begin{tabular}{llllllll}
 \toprule
-Algorithm & Dim & F1-score & Precision & Recall & Accuracy & Detectors \\
+Algorithm & Dim & F1-score & Precision & Recall & Accuracy & Detectors & Compl. runs \\
 \midrule
-NSA-GA & 1D & 0.950 & 0.967 & 0.933 & 0.951 & 408 \\
-NSA-GA & 2D & 0.927 & 0.929 & 0.925 & 0.927 & 925 \\
-NSA-GA & 3D & 0.886 & 0.925 & 0.851 & 0.891 & 2608 \\
-NSA-GA & 4D & 0.891 & 0.953 & 0.836 & 0.898 & 3000 \\
-NSA-NSGA-II & 1D & 0.950 & 0.964 & 0.937 & 0.951 & 483 \\
-NSA-NSGA-II & 2D & 0.932 & 0.936 & 0.929 & 0.933 & 908 \\
-NSA-NSGA-II & 3D & 0.889 & 0.925 & 0.855 & 0.893 & 1925 \\
-NSA-NSGA-II & 4D & 0.918 & 0.954 & 0.886 & 0.921 & 2875 \\
+NSA-GA & 1D & 0.950 $\pm$ 0.09\% & 0.967 $\pm$ 0.33\% & 0.933 $\pm$ 0.14\% & 0.951 $\pm$ 0.10\% & 408 $\pm$ 46.5 & Y \\
+NSA-GA & 2D & 0.927 $\pm$ 0.03\% & 0.929 $\pm$ 0.41\% & 0.925 $\pm$ 0.46\% & 0.927 $\pm$ 0.02\% & 925 $\pm$ 118.3 & Y \\
+NSA-GA & 3D & 0.886 $\pm$ 0.54\% & 0.925 $\pm$ 0.52\% & 0.851 $\pm$ 1.43\% & 0.891 $\pm$ 0.40\% & 2608 $\pm$ 587.5 & N \\
+NSA-GA & 4D & 0.891 $\pm$ 0.35\% & 0.953 $\pm$ 0.25\% & 0.836 $\pm$ 0.42\% & 0.898 $\pm$ 0.31\% & 3000 $\pm$ 0.0 & N \\
+NSA-NSGA-II & 1D & 0.950 $\pm$ 0.21\% & 0.964 $\pm$ 0.55\% & 0.937 $\pm$ 0.25\% & 0.951 $\pm$ 0.22\% & 483 $\pm$ 68.3 & Y \\
+NSA-NSGA-II & 2D & 0.932 $\pm$ 0.13\% & 0.936 $\pm$ 0.51\% & 0.929 $\pm$ 0.76\% & 0.933 $\pm$ 0.09\% & 908 $\pm$ 127.1 & Y \\
+NSA-NSGA-II & 3D & 0.889 $\pm$ 0.64\% & 0.925 $\pm$ 0.58\% & 0.855 $\pm$ 0.73\% & 0.893 $\pm$ 0.61\% & 1925 $\pm$ 381.4 & Y \\
+NSA-NSGA-II & 4D & 0.918 $\pm$ 0.86\% & 0.954 $\pm$ 0.25\% & 0.886 $\pm$ 1.58\% & 0.921 $\pm$ 0.77\% & 2875 $\pm$ 174.6 & N \\
 \bottomrule
 \end{tabular}
     }
-    \caption{fasttext Caption}
+    \caption{Performance metrics for the fasttext embedding model.}
+    \label{tab:fasttext_results}
 \end{table*}

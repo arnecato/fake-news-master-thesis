@@ -9,14 +9,14 @@ umap_dimensionality_reduction:
   dims:
     - 1
     - 2
-    - 3
-    - 4
+    #- 3
+    #- 4
   embeddings:
     - bert-base-cased
     - distilbert-base-cased
     - roberta-base
     - fasttext
-  tool: "python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_{embedding}.h5 --filepath_fake=dataset/ISOT/Fake_{embedding}.h5 --word_embedding={embedding} --dim={dim} --neighbors=15 --umap_sample_size=25700 --sample_size=21417 --min_dist=0.0"
+  tool: "python ./umap_tool.py umap --filepath_true=dataset/ISOT/True_{embedding}.h5 --filepath_fake=dataset/ISOT/Fake_{embedding}.h5 --word_embedding={embedding} --dim={dim} --neighbors=15 --umap_sample_size=25700 --sample_size=21417 --min_dist=0.0 --postfix=true_only"
 
 model_training:
   - name: "nsgaii_nsa"

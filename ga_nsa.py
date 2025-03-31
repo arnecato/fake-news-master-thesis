@@ -7,7 +7,7 @@ import argparse
 import os
 from typing import List
 from detectors import Detector, DetectorSet
-from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, f1_score, fast_cosine_distance, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume, calculate_self_region
+from util import euclidean_distance, fast_cosine_distance_with_radius, precision, recall, f1_score, fast_cosine_distance, visualize_1d, visualize_3d, visualize_2d, calculate_radius_overlap, get_shared_feature_vectors, get_nearby_self, hypersphere_overlap, hypersphere_volume, total_detector_hypersphere_volume, calculate_self_region
 import json
 import h5py
 from sklearn.preprocessing import MinMaxScaler
@@ -395,14 +395,14 @@ def main():
             with open(experiment_filepath, 'w') as f:
                 json.dump(results, f, indent=4)
         else:
-            true_plot_df = true_training_df #true_test_df # real_test_set_df
-            fake_plot_df = fake_training_df
-        
-            if args.dim == 2:
+            true_plot_df = true_test_df #true_training_df #true_test_df # real_test_set_df
+            fake_plot_df = fake_test_df #fake_training_df
+            if args.dim == 1:
+                visualize_1d(true_plot_df, fake_plot_df, dset, nsga.self_region, 'nsa-ga', args.model)
+            elif args.dim == 2:
                 visualize_2d(true_plot_df, fake_plot_df, dset, nsga.self_region, 'nsa-ga', args.model)
-
-            if args.dim == 3:
-                visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region)      
+            elif args.dim == 3:
+                visualize_3d(true_plot_df, fake_plot_df, dset, nsga.self_region, 'nsa-ga', args.model)      
     else:
         print('Auto mode enabled and experiment results already exists. Skipping experiment.')
                 
