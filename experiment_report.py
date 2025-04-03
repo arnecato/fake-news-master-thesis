@@ -10,7 +10,8 @@ import glob
 import sys
 import os
 import time
-from matplotlib.patches import Patch
+from matplotlib import cm
+colors = cm.get_cmap('Set2').colors  # pastel and readable
 
 # Use LaTeX and IEEE-style font settings
 plt.rcParams.update({
@@ -65,7 +66,7 @@ def create_negative_space_coverage_plot():
     Creates a grouped bar chart comparing negative space coverage across algorithms, dimensions and embeddings.
     """
     # Create directory for results if it doesn't exist
-    os.makedirs('report/results', exist_ok=True)
+    #os.makedirs('report/results', exist_ok=True)
     
     # Load the data
     csv_data = pd.read_csv('report/results/averaged_results.csv')
@@ -757,6 +758,160 @@ def extract_stdev_values():
     print(f"Extracted stdev values saved to {stdev_csv_file} and {stdev_latex_file}")
     return stdev_df
 
+def combine_oneclasssvm_nsa():
+    # algorithm,dataset,dimension,precision_avg,precision_stdev,recall_avg,recall_stdev,accuracy_avg,accuracy_stdev,f1_avg,f1_stdev,true_detected_avg,true_detected_stdev,true_total_avg,true_total_stdev,fake_detected_avg,fake_detected_stdev,fake_total_avg,fake_total_stdev,negative_space_coverage_avg,negative_space_coverage_stdev,time_to_build_avg,time_to_build_stdev,detectors_count_avg,detectors_count_stdev,time_to_infer_avg,time_to_infer_stdev,self_region_avg,self_region_stdev,stagnation
+    ga_nsga_df = pd.read_csv('report/results/averaged_results.csv')
+    # Embedding,Dim,F1-score,Precision,Recall,F1-score (val.),ν,γ,Kernel,tol
+    oneclasssvm_df = pd.read_csv('report/results/onesvm_results_table.csv')
+
+
+    """
+    Creates a combined table comparing F1-scores of OneClassSVM, NSA-GA, and NSA-NSGA-II.
+    The table includes embedding model, dimension, and F1-scores for each algorithm.
+    """
+    # Create a mapping of algorithm names
+    ga_nsga_df['algorithm'] = ga_nsga_df['algorithm'].replace({
+        'ga': 'NSA-GA', 
+        'nsgaii': 'NSA-NSGA-II'
+    })
+    
+    # Map the embedding names to their shorter versions
+    ga_nsga_df['dataset'] = ga_nsga_df['dataset'].replace({
+        'roberta-base': 'RoBERTa', 
+        'distilbert-base-cased': 'DistilBERT', 
+        'bert-base-cased': 'BERT', 
+        'fasttext': 'FastText'
+    })
+    
+    # Map the embedding names for OneClassSVM to match
+    oneclasssvm_df['Embedding'] = oneclasssvm_df['Embedding'].replace({
+        'roberta-base': 'RoBERTa', 
+        'distilbert-base-cased': 'DistilBERT', 
+        'bert-base-cased': 'BERT', 
+        'fasttext': 'FastText'
+    })
+    
+    # Create a pivot table with F1 scores for GA and NSGA-II
+    ga_nsga_pivot = ga_nsga_df.pivot_table(
+        values='f1_avg',
+        index=['dataset', 'dimension'],
+        columns='algorithm',
+        aggfunc='first'
+    ).reset_index()
+    
+    # Prepare OneClassSVM data
+    oneclasssvm_f1 = oneclasssvm_df.rename(columns={
+        'Embedding': 'dataset', 
+        'Dim': 'dimension',
+        'F1-score': 'OneClassSVM'
+    })[['dataset', 'dimension', 'OneClassSVM']]
+    
+    # Merge the dataframes
+    combined_df = pd.merge(
+        ga_nsga_pivot, 
+        oneclasssvm_f1,
+        on=['dataset', 'dimension'],
+        how='outer'
+    )
+    
+    # Reorder columns to match requested order: Embedding, Dim, OneClassSVM, NSA-NSGA-II, NSA-GA
+    combined_df = combined_df[['dataset', 'dimension', 'OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']]
+    
+    # Rename columns for better readability
+    combined_df.columns = ['Embedding', 'Dim', 'OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']
+    
+    # Round to 3 decimal places
+    for col in ['OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']:
+        combined_df[col] = combined_df[col].round(3)
+    
+    # Define custom embedding order: RoBERTa, FastText, DistilBERT, BERT
+    embedding_order = {'RoBERTa': 1, 'FastText': 2, 'DistilBERT': 3, 'BERT': 4}
+    combined_df['embedding_order'] = combined_df['Embedding'].map(embedding_order)
+    
+    # Define dimension order
+    dimension_order = {'1D': 1, '2D': 2, '3D': 3, '4D': 4}
+    combined_df['dim_order'] = combined_df['Dim'].map(dimension_order)
+    
+    # Sort by embedding first, then dimension
+    combined_df = combined_df.sort_values(['embedding_order', 'dim_order']).drop(columns=['embedding_order', 'dim_order'])
+    
+    # Save to CSV
+    combined_df.to_csv('report/results/combined_oneclasssvm_nsa_f1_comparison.csv', index=False)
+    
+    # Generate LaTeX table
+    with open('report/results/combined_oneclasssvm_nsa_f1_compariso.tex', 'w') as tf:
+        latex_str = combined_df.to_latex(
+            index=False,
+            float_format=lambda x: f"{x:.3f}" if isinstance(x, float) else x
+        )
+        # Replace the LaTeX table structure with the specified format
+        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table}[h]\n    \\centering\n    \\begin{tabular}')
+        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    \\caption{F1-score comparison across algorithms}\n    \\label{tab:f1_comparison}\n\\end{table}')
+        tf.write(latex_str)
+    
+    print("\nCombined F1-score comparison:")
+    print(combined_df.to_string(index=False))
+    
+    return combined_df
+
+def oneclasssvm_comparison_plot():
+    """
+    Creates a bar chart comparing F1-scores of OneClassSVM, NSA-GA, and NSA-NSGA-II
+    across different embedding models and dimensions.
+    """
+    df = pd.read_csv("report/results/combined_oneclasssvm_nsa_f1_comparison.csv")
+    
+    # Create a new column that combines Embedding and Dimension for x-axis labels
+    df['Embedding_Dim'] = df['Embedding'] + '-' + df['Dim']
+    
+    # Set up the figure with LaTeX styling
+    fig, ax = plt.subplots(figsize=(12, 4))
+    
+    # Find the min and max F1-scores to adjust y-axis limits
+    min_f1 = min(df['OneClassSVM'].min(), df['NSA-NSGA-II'].min(), df['NSA-GA'].min())
+    max_f1 = max(df['OneClassSVM'].max(), df['NSA-NSGA-II'].max(), df['NSA-GA'].max())
+    
+    # Create padding for better visibility (5% of range at bottom, 10% at top)
+    y_min = max(0, min_f1 - 0.05)
+    y_max = 1.05  # Set y-axis maximum to 1.05
+    
+    # Set width of bars and positions
+    bar_width = 0.25
+    x = np.arange(len(df['Embedding_Dim']))
+    
+    # Plot bars for each algorithm with blue, green, and red colors
+    bars1 = ax.bar(x - bar_width, df['OneClassSVM'], bar_width, label='OneClassSVM', color=colors[0])
+    bars2 = ax.bar(x, df['NSA-NSGA-II'], bar_width, label='NSA-NSGA-II', color=colors[1])
+    bars3 = ax.bar(x + bar_width, df['NSA-GA'], bar_width, label='NSA-GA', color=colors[2])
+    
+    # Add labels, title and legend
+    ax.set_xlabel(r'\textbf{Embedding Model and Dimension}', fontsize=12)
+    ax.set_ylabel(r'\textbf{F1-score}', fontsize=12)
+    ax.set_title(r'\textbf{Comparison of F1-scores Across Algorithms, Embedding Models and Dimensions}', fontsize=14)
+    ax.set_xticks(x)
+    ax.set_xticklabels(df['Embedding_Dim'], rotation=45, ha='right', fontsize=10)
+    
+    # Add grid to better visualize the values
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    # Add a horizontal line representing a baseline of 0.5 F1-score
+    ax.axhline(y=0.5, color='gray', linestyle='-', alpha=0.5)
+    
+    # Set y-axis with margins at both top and bottom
+    ax.set_ylim(y_min, y_max)
+    
+    # Add legend at the top right with a nice border
+    legend = ax.legend(loc='upper right', frameon=True, framealpha=0.9)
+    legend.get_frame().set_edgecolor('lightgray')
+    
+    # Adjust layout to fit all elements
+    plt.tight_layout()
+    
+    # Save figure
+    plt.savefig('report/results/algorithm_comparison_f1scores.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('report/results/algorithm_comparison_f1scores.png', dpi=300, bbox_inches='tight')
+    
+    print("Created comparison plot of F1-scores across algorithms.")
 
 '''{
     "test_precision": 0.9263899765074393,
@@ -950,5 +1105,7 @@ create_boxplot_by_algorithm('precision_avg', 'Precision')
 create_boxplot_by_algorithm('recall_avg', 'Recall')
 create_boxplot_by_algorithm('detectors_count_avg', 'Detectors')
 plot_f1_precision_recall_negative_space_per_detector_amount()'''
-plot_detector_models()
+#plot_detector_models()
 #extract_stdev_values()
+combine_oneclasssvm_nsa()
+oneclasssvm_comparison_plot()

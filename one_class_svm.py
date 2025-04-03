@@ -14,7 +14,7 @@ tol = 1e-4  # Lower tolerance for more precise convergence
 shrinking = True  # Keep shrinking heuristic for efficiency
 cache_size = 500  # Increased cache size for better performance
 
-dataset = "dataset/ISOT/True_Fake_roberta-base_umap_1dim_15_25700_21417.h5"
+dataset = "dataset/ISOT/True_Fake_fasttext_umap_4dim_15_25700_21417.h5"
 true_training_df = pd.read_hdf(dataset, key='true_training')
 true_validation_df = pd.read_hdf(dataset, key='true_validation')
 true_test_df = pd.read_hdf(dataset, key='true_test')
