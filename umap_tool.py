@@ -82,11 +82,13 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         print('Fake training size:', len(fake_training_df), 'Fake validation size:', len(fake_validation_df), 'Fake test size:', len(fake_test_df))
         # prepare dimension reducer
         # CHECK OUT THIS CODE - USE FAKE NEWS OR NOT!?
-        umap_training_df = true_training_df #pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) # TODO: Consider using FAKE data too!
+        umap_training_df = pd.concat([true_training_df.sample(int(umap_sample_size/2), random_state=42), fake_training_df.sample(int(umap_sample_size/2), random_state=42)]) 
         print('UMAP fitting size:', len(umap_training_df))
         dimension_reducer = umap.ParametricUMAP(n_components=dim, n_neighbors=neighbors, n_jobs=-1, min_dist=min_dist, metric=metric, spread=spread) 
         #dim_reducer_training_df = true_training_df.sample(sample_size, random_state=42) # TODO: REMOVE HARDCODING
+        time0 = time.perf_counter()
         dimension_reducer.fit(np.vstack(umap_training_df['vector'].values))
+        print('Fitting time:', time.perf_counter()-time0, len(umap_training_df))
 
          # Save the dimension reducer model
         model_name = f'{word_embedding}_{dim}dim'
@@ -110,7 +112,9 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         fake_test_df['vector'] = [np.array(vec) for vec in reduced_fake_test_vectors]'''
         # concat version
         true_fake_training_df = pd.concat([true_training_df, fake_training_df])
+        time0 = time.perf_counter()
         reduced_true_fake_training_vectors = dimension_reducer.transform(np.vstack(true_fake_training_df['vector'].values))
+        print('Training Dimensionality reduction time:', time.perf_counter()-time0, 'Length:', len(reduced_true_fake_training_vectors))
 
         true_fake_training_df['vector'] =  [np.array(vec) for vec in reduced_true_fake_training_vectors]
         
@@ -118,13 +122,17 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         fake_training_df['vector'] = true_fake_training_df.loc[true_fake_training_df['label'] == 'false', 'vector']
 
         true_fake_test_df = pd.concat([true_test_df, fake_test_df])
+        time0 = time.perf_counter()
         reduced_true_fake_test_vectors = dimension_reducer.transform(np.vstack(true_fake_test_df['vector'].values))
+        print('Test Dimensionality reduction time:', time.perf_counter()-time0, 'Length:', len(reduced_true_fake_test_vectors))
         true_fake_test_df['vector'] =  [np.array(vec) for vec in reduced_true_fake_test_vectors]
         true_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'true', 'vector']
         fake_test_df['vector'] = true_fake_test_df.loc[true_fake_test_df['label'] == 'false', 'vector']
         
         true_fake_validation_df = pd.concat([true_validation_df, fake_validation_df])
+        time0 = time.perf_counter()
         reduced_true_fake_validation_vectors = dimension_reducer.transform(np.vstack(true_fake_validation_df['vector'].values))
+        print('Validation Dimensionality reduction time:', time.perf_counter()-time0, 'Length:', len(reduced_true_fake_validation_vectors))
         true_fake_validation_df['vector'] = [np.array(vec) for vec in reduced_true_fake_validation_vectors]
         true_validation_df['vector'] = true_fake_validation_df.loc[true_fake_validation_df['label'] == 'true', 'vector']
         fake_validation_df['vector'] = true_fake_validation_df.loc[true_fake_validation_df['label'] == 'false', 'vector']
@@ -144,12 +152,14 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
         true_validation_df.to_hdf(filepath, key='true_validation', mode='a')
         true_test_df.to_hdf(filepath, key='true_test', mode='a')
         fake_training_df.to_hdf(filepath, key='fake_training', mode='a')
+
         fake_validation_df.to_hdf(filepath, key='fake_validation', mode='a')
         fake_test_df.to_hdf(filepath, key='fake_test', mode='a')
         
         # find self region radius
         self_points = np.array(true_training_df['vector'].tolist())
-        self_region = calculate_self_region(self_points)
+        # TODO: ENABLE SELF REGION CALCULATION!
+        # self_region = calculate_self_region(self_points)
 
         # add metadata
         with h5py.File(filepath, 'a') as f:
@@ -159,7 +169,7 @@ def reduce_dimensions(filepath_true, filepath_fake, dim, neighbors, word_embeddi
             f.attrs['dim'] = dim
             f.attrs['neighbors'] = neighbors
             f.attrs['sample_size'] = sample_size
-            f.attrs['self_region'] = self_region
+            #f.attrs['self_region'] = self_region # TODO: ENABLE SELF REGION CALCULATION!
 
         print('Dim reduced to:', len(true_training_df.iloc[0]['vector']), 'File', filepath, 'Processing time:', time.perf_counter()-time0)
     else:

@@ -1,0 +1,23 @@
+Inference times:
+
+
+model, dim, fitting time (length), inference time (length)
+BERT, 1D, 220 (25700), 0.18 (25700)
+Distilbert, 1D, 208, 0.19
+RoBERTa, 1D, 210, 0.18
+FastText, 1D, 155, 0.15
+
+BERT 2D, 218, 0.19
+DistilBERT 2D, 209, 0.18
+RoBERTa 2D, 211, 0.18
+FastText 2D, 165, 0.16
+
+BERT 3D, 228,0,21
+DistilBERT 3D, 216, 0.18
+RoBERTa, 3D, 209, 0.19
+FastText, 3D, 156, 0.16
+
+BERT, 4D, 216, 0.18
+DistilBERT, 4D, 206, 0.18
+RoBERTa, 4D, 206, 0.18
+FastText, 4D, 155, 0.15

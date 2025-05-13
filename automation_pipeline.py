@@ -1,6 +1,7 @@
 import yaml
 import subprocess
 from datetime import datetime
+import time
 
 def document_embedding():
     with open('automation_pipeline.yaml', 'r') as file:
@@ -13,9 +14,11 @@ def document_embedding():
         commands.append(command)
 
     for cmd in commands:
+        time0 = time.perf_counter()
+        print(f"{time0}: {cmd}")
         print(cmd)
         subprocess.run(cmd, shell=True)
-        
+        print(f'{cmd} took {time.perf_counter() - time0} seconds')        
 
 def umap_dimensionality_reduction():
     with open('automation_pipeline.yaml', 'r') as file:

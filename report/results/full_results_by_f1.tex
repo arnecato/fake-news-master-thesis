@@ -2,42 +2,42 @@
     \centering
     \tiny
     \resizebox{\textwidth}{!}{
-    \begin{tabular}{lllrrrrr}
+    \begin{tabular}{lllrrrrrr}
 \toprule
-Algorithm & Embedding & Dim & F1-score & Precision & Recall & Accuracy & Detectors \\
+Algorithm & Embedding & Dim & F1-score & Precision & Recall & Accuracy & Detectors & Stagnation \\
 \midrule
-NSA-NSGA-II & roberta-base & 1D & 0.994 & 0.989 & 0.999 & 0.994 & 58 \\
-NSA-GA & roberta-base & 1D & 0.993 & 0.987 & 0.999 & 0.993 & 67 \\
-NSA-NSGA-II & roberta-base & 2D & 0.981 & 0.977 & 0.985 & 0.981 & 225 \\
-NSA-NSGA-II & roberta-base & 4D & 0.978 & 0.979 & 0.977 & 0.978 & 542 \\
-NSA-GA & roberta-base & 2D & 0.977 & 0.978 & 0.976 & 0.977 & 250 \\
-NSA-NSGA-II & roberta-base & 3D & 0.964 & 0.976 & 0.951 & 0.964 & 283 \\
-NSA-NSGA-II & fasttext & 1D & 0.950 & 0.964 & 0.937 & 0.951 & 483 \\
-NSA-GA & fasttext & 1D & 0.950 & 0.967 & 0.933 & 0.951 & 408 \\
-NSA-GA & roberta-base & 3D & 0.949 & 0.975 & 0.925 & 0.951 & 408 \\
-NSA-GA & roberta-base & 4D & 0.943 & 0.983 & 0.906 & 0.945 & 308 \\
-NSA-NSGA-II & distilbert-base-cased & 4D & 0.937 & 0.947 & 0.928 & 0.938 & 2733 \\
-NSA-NSGA-II & fasttext & 2D & 0.932 & 0.936 & 0.929 & 0.933 & 908 \\
-NSA-NSGA-II & distilbert-base-cased & 1D & 0.931 & 0.964 & 0.901 & 0.934 & 417 \\
-NSA-GA & distilbert-base-cased & 1D & 0.930 & 0.957 & 0.905 & 0.932 & 467 \\
-NSA-GA & fasttext & 2D & 0.927 & 0.929 & 0.925 & 0.927 & 925 \\
-NSA-NSGA-II & fasttext & 4D & 0.918 & 0.954 & 0.886 & 0.921 & 2875 \\
-NSA-GA & distilbert-base-cased & 4D & 0.916 & 0.951 & 0.883 & 0.919 & 2783 \\
-NSA-GA & distilbert-base-cased & 2D & 0.911 & 0.918 & 0.905 & 0.912 & 967 \\
-NSA-NSGA-II & distilbert-base-cased & 2D & 0.910 & 0.926 & 0.894 & 0.912 & 892 \\
-NSA-NSGA-II & distilbert-base-cased & 3D & 0.903 & 0.916 & 0.890 & 0.904 & 2258 \\
-NSA-GA & fasttext & 4D & 0.891 & 0.953 & 0.836 & 0.898 & 3000 \\
-NSA-NSGA-II & fasttext & 3D & 0.889 & 0.925 & 0.855 & 0.893 & 1925 \\
-NSA-GA & fasttext & 3D & 0.886 & 0.925 & 0.851 & 0.891 & 2608 \\
-NSA-GA & distilbert-base-cased & 3D & 0.884 & 0.926 & 0.845 & 0.889 & 2342 \\
-NSA-NSGA-II & bert-base-cased & 1D & 0.869 & 0.926 & 0.819 & 0.877 & 1367 \\
-NSA-NSGA-II & bert-base-cased & 2D & 0.869 & 0.894 & 0.845 & 0.873 & 2100 \\
-NSA-GA & bert-base-cased & 1D & 0.867 & 0.926 & 0.815 & 0.875 & 1217 \\
-NSA-GA & bert-base-cased & 2D & 0.861 & 0.883 & 0.839 & 0.864 & 2008 \\
-NSA-NSGA-II & bert-base-cased & 3D & 0.814 & 0.910 & 0.736 & 0.832 & 3000 \\
-NSA-GA & bert-base-cased & 3D & 0.788 & 0.916 & 0.692 & 0.814 & 2967 \\
-NSA-GA & bert-base-cased & 4D & 0.684 & 0.927 & 0.542 & 0.750 & 3000 \\
-NSA-NSGA-II & bert-base-cased & 4D & 0.655 & 0.927 & 0.507 & 0.733 & 2983 \\
+NSA-NSGA-II & roberta-base & 1D & 0.994 & 0.989 & 0.999 & 0.994 & 58 & 5.000 \\
+NSA-GA & roberta-base & 1D & 0.993 & 0.987 & 0.999 & 0.993 & 67 & 5.000 \\
+NSA-NSGA-II & roberta-base & 2D & 0.981 & 0.977 & 0.985 & 0.981 & 225 & 5.000 \\
+NSA-NSGA-II & roberta-base & 4D & 0.978 & 0.979 & 0.977 & 0.978 & 542 & 5.000 \\
+NSA-GA & roberta-base & 2D & 0.977 & 0.978 & 0.976 & 0.977 & 250 & 5.000 \\
+NSA-NSGA-II & roberta-base & 3D & 0.964 & 0.976 & 0.951 & 0.964 & 283 & 5.000 \\
+NSA-NSGA-II & fasttext & 1D & 0.950 & 0.964 & 0.937 & 0.951 & 483 & 5.000 \\
+NSA-GA & fasttext & 1D & 0.950 & 0.967 & 0.933 & 0.951 & 408 & 5.000 \\
+NSA-GA & roberta-base & 3D & 0.949 & 0.975 & 0.925 & 0.951 & 408 & 5.000 \\
+NSA-GA & roberta-base & 4D & 0.943 & 0.983 & 0.906 & 0.945 & 308 & 5.000 \\
+NSA-NSGA-II & distilbert-base-cased & 4D & 0.937 & 0.947 & 0.928 & 0.938 & 2733 & 3.667 \\
+NSA-NSGA-II & fasttext & 2D & 0.932 & 0.936 & 0.929 & 0.933 & 908 & 5.000 \\
+NSA-NSGA-II & distilbert-base-cased & 1D & 0.931 & 0.964 & 0.901 & 0.934 & 417 & 5.000 \\
+NSA-GA & distilbert-base-cased & 1D & 0.930 & 0.957 & 0.905 & 0.932 & 467 & 5.000 \\
+NSA-GA & fasttext & 2D & 0.927 & 0.929 & 0.925 & 0.927 & 925 & 5.000 \\
+NSA-NSGA-II & fasttext & 4D & 0.918 & 0.954 & 0.886 & 0.921 & 2875 & 2.000 \\
+NSA-GA & distilbert-base-cased & 4D & 0.916 & 0.951 & 0.883 & 0.919 & 2783 & 1.667 \\
+NSA-GA & distilbert-base-cased & 2D & 0.911 & 0.918 & 0.905 & 0.912 & 967 & 5.000 \\
+NSA-NSGA-II & distilbert-base-cased & 2D & 0.910 & 0.926 & 0.894 & 0.912 & 892 & 5.000 \\
+NSA-NSGA-II & distilbert-base-cased & 3D & 0.903 & 0.916 & 0.890 & 0.904 & 2258 & 5.000 \\
+NSA-GA & fasttext & 4D & 0.891 & 0.953 & 0.836 & 0.898 & 3000 & 0.000 \\
+NSA-NSGA-II & fasttext & 3D & 0.889 & 0.925 & 0.855 & 0.893 & 1925 & 5.000 \\
+NSA-GA & fasttext & 3D & 0.886 & 0.925 & 0.851 & 0.891 & 2608 & 2.000 \\
+NSA-GA & distilbert-base-cased & 3D & 0.884 & 0.926 & 0.845 & 0.889 & 2342 & 5.000 \\
+NSA-NSGA-II & bert-base-cased & 1D & 0.869 & 0.926 & 0.819 & 0.877 & 1367 & 5.000 \\
+NSA-NSGA-II & bert-base-cased & 2D & 0.869 & 0.894 & 0.845 & 0.873 & 2100 & 5.000 \\
+NSA-GA & bert-base-cased & 1D & 0.867 & 0.926 & 0.815 & 0.875 & 1217 & 5.000 \\
+NSA-GA & bert-base-cased & 2D & 0.861 & 0.883 & 0.839 & 0.864 & 2008 & 5.000 \\
+NSA-NSGA-II & bert-base-cased & 3D & 0.814 & 0.910 & 0.736 & 0.832 & 3000 & 0.000 \\
+NSA-GA & bert-base-cased & 3D & 0.788 & 0.916 & 0.692 & 0.814 & 2967 & 1.333 \\
+NSA-GA & bert-base-cased & 4D & 0.684 & 0.927 & 0.542 & 0.750 & 3000 & 0.000 \\
+NSA-NSGA-II & bert-base-cased & 4D & 0.655 & 0.927 & 0.507 & 0.733 & 2983 & 0.667 \\
 \bottomrule
 \end{tabular}
     }

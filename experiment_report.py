@@ -10,7 +10,10 @@ import glob
 import sys
 import os
 import time
+from matplotlib.ticker import AutoMinorLocator
+from scipy.signal import argrelextrema
 from matplotlib import cm
+from scipy.stats import beta
 colors = cm.get_cmap('Set2').colors  # pastel and readable
 
 # Use LaTeX and IEEE-style font settings
@@ -23,6 +26,126 @@ plt.rcParams.update({
     "ytick.labelsize": 10,
     "legend.fontsize": 10
 })
+
+
+def plot_beta_function():
+    """
+    Plot the Beta distribution with α = 1, β = 4
+    for an academic IEEE-style publication.
+    """
+    
+    # Set up figure with IEEE style
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman']
+    plt.rcParams['font.size'] = 12
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['axes.linewidth'] = 0.8
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(6, 4))
+    
+    # Parameters for Beta distribution
+    alpha = 1
+    beta_param = 4
+    
+    # Generate x values and corresponding pdf
+    x = np.linspace(0, 1, 1000)
+    y = beta.pdf(x, alpha, beta_param)
+    
+    # Plot the distribution
+    ax.plot(x, y, 'k-', linewidth=1.5)
+    
+    # Fill under the curve with light blue
+    ax.fill_between(x, y, color='skyblue', alpha=0.4)
+    
+    # Add grid
+    ax.grid(which='major', linestyle='-', linewidth=0.3)
+    ax.grid(which='minor', linestyle=':', linewidth=0.2)
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+    
+    # Add labels and title
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$f(x|\\alpha=1,\\beta=4)$')
+    ax.set_title('Beta Distribution: $\\mathrm{Beta}(\\alpha=1,\\beta=4)$')
+    
+    # Show the parameters as a text box
+    '''props = dict(boxstyle='round', facecolor='white', alpha=0.7)
+    ax.text(0.72, 0.95, '$\\alpha = 1$\n$\\beta = 4$', transform=ax.transAxes, 
+            fontsize=10, verticalalignment='top', bbox=props)'''
+    # Set tight layout
+    plt.tight_layout()
+    # Save figure
+    plt.savefig('report/beta_distribution_plot.pdf', format='pdf', dpi=600, bbox_inches='tight')
+    plt.savefig('report/beta_distribution_plot.png', format='png', dpi=300, bbox_inches='tight')
+    
+    # Show plot
+    plt.show()
+
+def objective_function(x):
+    """The objective function f(x) = sin(x) + sin(1/3*x) + 0.1*x"""
+    return np.sin(x) + np.sin(x/3) + 0.1*x
+
+def plot_objective_function():
+    # Set up figure with IEEE style
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman']
+    plt.rcParams['font.size'] = 10
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['axes.linewidth'] = 0.8
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(6.5, 4))
+
+    # Generate x values from 0 to 10
+    x = np.linspace(0, 10, 1000)
+    y = objective_function(x)
+
+    # Plot the function
+    ax.plot(x, y, 'k-', linewidth=1.5)
+
+    # Find local extrema
+    local_max_idx = argrelextrema(y, np.greater)[0]
+    local_min_idx = argrelextrema(y, np.less)[0]
+
+    # Mark local maxima
+    ax.plot(x[local_max_idx], y[local_max_idx], 'ro', markersize=4, label='Local maxima')
+    # Mark local minima
+    ax.plot(x[local_min_idx], y[local_min_idx], 'bo', markersize=4, label='Local minima')
+
+    # Find global maximum and minimum
+    global_max_idx = np.argmax(y)
+    global_min_idx = np.argmin(y)
+
+    # Mark global maximum and minimum
+    ax.plot(x[global_max_idx], y[global_max_idx], 'rs', markersize=6, label='Global maximum')
+    ax.plot(x[global_min_idx], y[global_min_idx], 'bs', markersize=6, label='Global minimum')
+
+    # Add grid
+    ax.grid(which='major', linestyle='-', linewidth=0.3)
+    ax.grid(which='minor', linestyle=':', linewidth=0.2)
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+
+    # Add title and labels
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$f(x)$')
+    ax.set_title('Objective Function: $f(x) = \sin(x) + \sin(\\frac{x}{3}) + 0.1x$')
+
+    # Add legend
+    ax.legend(frameon=True, loc='best', framealpha=0.7)
+
+    # Set tight layout
+    plt.tight_layout()
+
+    # Save figure
+    plt.savefig('report/objective_function_plot.pdf', format='pdf', dpi=600, bbox_inches='tight')
+    plt.savefig('report/objective_function_plot.png', format='png', dpi=300, bbox_inches='tight')
+
+    # Show plot
+    plt.show()
 
 def create_full_table_sorted_by_f1():
     # Create a copy of the dataframe with algorithm names mapped
@@ -199,6 +322,101 @@ def create_best_overall_table():
     
     return best_metrics
 
+def create_combined_embedding_table(journal=False):
+    """
+    Creates a combined table with all embedding datasets in one,
+    showing performance metrics for each algorithm and dimension combination.
+    If journal=True, only includes NSA-GA (skips NSA-NSGA-II) and removes Algorithm column.
+    """
+    df = pd.read_csv('report/results/averaged_results.csv')
+    
+    # Create a copy of the dataframe
+    combined_df = df.copy()
+    
+    # Map algorithm names
+    combined_df['algorithm'] = combined_df['algorithm'].replace({'nsgaii': 'NSA-NSGA-II', 'ga': 'NSA-GA'})
+    
+    # If journal, filter only NSA-GA
+    if journal:
+        combined_df = combined_df[combined_df['algorithm'] == 'NSA-GA']
+    
+    # Map embedding names to shorter versions
+    combined_df['dataset'] = combined_df['dataset'].replace({
+        'roberta-base': 'RoBERTa', 
+        'distilbert-base-cased': 'DistilBERT', 
+        'fasttext': 'FastText', 
+        'bert-base-cased': 'BERT'
+    })
+    
+    # Round detectors count to nearest integer
+    combined_df['detectors_count_avg'] = combined_df['detectors_count_avg'].round().astype(int)
+    
+    # Format metrics with standard deviations
+    combined_df['F1-score'] = combined_df.apply(lambda row: f"{row['f1_avg']:.3f} $\\pm$ {row['f1_stdev'] * 100:.2f}\\%", axis=1)
+    combined_df['Precision'] = combined_df.apply(lambda row: f"{row['precision_avg']:.3f} $\\pm$ {row['precision_stdev'] * 100:.2f}\\%", axis=1)
+    combined_df['Recall'] = combined_df.apply(lambda row: f"{row['recall_avg']:.3f} $\\pm$ {row['recall_stdev'] * 100:.2f}\\%", axis=1)
+    combined_df['Accuracy'] = combined_df.apply(lambda row: f"{row['accuracy_avg']:.3f} $\\pm$ {row['accuracy_stdev'] * 100:.2f}\\%", axis=1)
+    combined_df['Detectors'] = combined_df.apply(lambda row: f"{row['detectors_count_avg']} $\\pm$ {row['detectors_count_stdev']:.1f}", axis=1)
+    
+    # Convert stagnation to Y/N
+    combined_df['Compl. runs'] = combined_df['stagnation'].apply(lambda x: 'Y' if x == 5 else 'N')
+    
+    # Create a custom embedding order
+    embedding_order = {'RoBERTa': 0, 'DistilBERT': 1, 'FastText': 2, 'BERT': 3}
+    combined_df['emb_order'] = combined_df['dataset'].map(embedding_order)
+    
+    # Create a custom dimension order
+    dimension_order = {'1D': 0, '2D': 1, '3D': 2, '4D': 3}
+    combined_df['dim_order'] = combined_df['dimension'].map(dimension_order)
+    
+    # Sort by algorithm (if not journal), embedding, and dimension
+    if journal:
+        combined_df = combined_df.sort_values(['emb_order', 'dim_order'], ascending=[True, True])
+    else:
+        combined_df = combined_df.sort_values(['algorithm', 'emb_order', 'dim_order'], ascending=[True, True, True])
+    
+    combined_df = combined_df.drop(columns=['emb_order', 'dim_order'])
+    
+    # Select only the relevant columns (exclude Algorithm for journal)
+    if journal:
+        cols = ['dataset', 'dimension', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
+    else:
+        cols = ['algorithm', 'dataset', 'dimension', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
+    
+    combined_df = combined_df[cols]
+    
+    # Rename columns for better readability
+    if journal:
+        combined_df.columns = ['Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
+    else:
+        combined_df.columns = ['Algorithm', 'Embedding', 'Dim', 'F1-score', 'Precision', 'Recall', 'Accuracy', 'Detectors', 'Compl. runs']
+    
+    # Add journal to filename if needed
+    file_suffix = "_journal" if journal else ""
+    
+    # Save to CSV
+    combined_df.to_csv(f'report/results/all_embeddings_combined{file_suffix}.csv', index=False)
+    
+    # Save table to LaTeX format
+    with open(f'report/results/all_embeddings_combined{file_suffix}.tex', 'w') as tf:
+        latex_str = combined_df.to_latex(index=False, escape=False)
+        # Replace the LaTeX table structure with the specified format
+        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table*}[h]\n    \\centering\n    \\tiny\n    \\resizebox{\\textwidth}{!}{\n    \\begin{tabular}')
+        caption = "Performance metrics for all embedding models using NSA-GA." if journal else "Performance metrics for all embedding models."
+        # Add vspace after bottomrule
+        latex_str = latex_str.replace('\\bottomrule', '\\bottomrule\\vspace{1pt}')
+        latex_str = latex_str.replace('\\end{tabular}', f'\\end{{tabular}}\n    }}\n    \\caption{{{caption}}}\n    \\label{{tab:all_embeddings_results{file_suffix}}}\n\\end{{table*}}')
+        # Remove the original table environment since we're creating our own
+        latex_str = latex_str.replace('\\begin{table}', '')
+        latex_str = latex_str.replace('\\end{table}', '')
+        # Write to file
+        tf.write(latex_str)
+    
+    print(f"\nCombined Results for All Embeddings{' (Journal Version)' if journal else ''}:")
+    print(combined_df.to_string(index=False))
+    
+    return combined_df
+
 # Function to create tables per embedding
 def create_per_embedding_tables():
     df = pd.read_csv('report/results/averaged_results.csv')
@@ -270,10 +488,11 @@ def create_per_embedding_tables():
     
     return results
 
-def create_boxplot_by_dimension(column, naming):
+def create_boxplot_by_dimension(column, naming, journal):
     """
     Generates a LaTeX-formatted boxplot grouped by dimensionality (1D to 4D),
     comparing all algorithm-embedding combinations. Outputs high-resolution PNG and PDF.
+    If journal=True, only includes NSA-GA data (skips NSA-NSGA-II) and adds "journal" to the filename.
     """
 
     # Prepare DataFrame
@@ -282,6 +501,11 @@ def create_boxplot_by_dimension(column, naming):
         'nsgaii': 'NSA-NSGA-II',
         'ga': 'NSA-GA'
     })
+    
+    # Filter for only NSA-GA if journal is True
+    if journal:
+        display_df = display_df[display_df['algorithm'] == 'NSA-GA']
+        
     display_df['algorithm_embedding'] = display_df['algorithm'] + ' - ' + display_df['dataset']
 
     # Collect data per dimension
@@ -290,40 +514,49 @@ def create_boxplot_by_dimension(column, naming):
 
     # Create figure
     plt.figure(figsize=(6, 6))
+    
+    # IEEE-style color palette - blue-based professional colors
+    box_color = '#0072BD'  # IEEE blue
+    
     bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
 
-    # Style the boxplot
+    # Style the boxplot with IEEE academic colors
     for box in bp['boxes']:
-        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+        box.set(facecolor=box_color, edgecolor='black', linewidth=1, alpha=0.6)
     for whisker in bp['whiskers']:
         whisker.set(color='black', linewidth=1)
     for cap in bp['caps']:
         cap.set(color='black', linewidth=1)
     for median in bp['medians']:
-        median.set(color='black', linewidth=1.5)
+        median.set(color='#D95319', linewidth=1.5)  # IEEE orange for contrast
     for flier in bp['fliers']:
-        flier.set(marker='o', markersize=4, markerfacecolor='black',
-                    markeredgecolor='black', alpha=0.5)
+        flier.set(marker='o', markersize=4, markerfacecolor='#7E2F8E',  # IEEE purple
+                  markeredgecolor='black', alpha=0.5)
 
     # Add labels and layout
     plt.xlabel(r'\textbf{Dimension}')
     plt.ylabel(r'\textbf{' + naming + '}')
-    plt.title(r'\textbf{Impact of Dimensionality on ' + naming + '}', pad=10)
+    title_prefix = "NSA-GA " if journal else ""
+    plt.title(r'\textbf{Impact of Dimensionality on ' + title_prefix + naming + '}', pad=10)
     plt.xticks(ticks=range(1, len(dimensions) + 1), labels=dimensions)
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
 
+    # Add journal to filename if needed
+    filename_suffix = "_journal" if journal else ""
+    
     # Save figure
-    plt.savefig(f'report/results/{column}_boxplot_by_dimension.pdf', format='pdf', bbox_inches='tight')
-    plt.savefig(f'report/results/{column}_boxplot_by_dimension.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_dimension{filename_suffix}.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_dimension{filename_suffix}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-    print("Created LaTeX-styled detector count boxplot by dimension.")
+    print(f"Created LaTeX-styled {naming} boxplot by dimension{' (journal version)' if journal else ''}.")
 
-def create_boxplot_by_embedding(column, naming):
+def create_boxplot_by_embedding(column, naming, journal):
     """
     Generates a LaTeX-formatted boxplot grouped by embedding models (RoBERTa, BERT, DistilBERT, FastText),
     comparing the algorithms. Outputs high-resolution PNG and PDF.
+    If journal=True, only includes NSA-GA data (skips NSA-NSGA-II) and adds "journal" to the filename.
     """
 
     # Prepare DataFrame
@@ -332,56 +565,74 @@ def create_boxplot_by_embedding(column, naming):
         'nsgaii': 'NSA-NSGA-II',
         'ga': 'NSA-GA'
     })
+    
+    # Filter for only NSA-GA if journal is True
+    if journal:
+        display_df = display_df[display_df['algorithm'] == 'NSA-GA']
+        
+    display_df['algorithm_embedding'] = display_df['algorithm'] + ' - ' + display_df['dataset']
 
     # Collect data per embedding model
     embedding_models = sorted(display_df['dataset'].unique())
     boxplot_data = [display_df[display_df['dataset'] == model][column] for model in embedding_models]
 
     # Create figure
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(6, 6))
+    
+    # IEEE-style color palette - blue-based professional colors
+    box_color = '#0072BD'  # IEEE blue
+    
     bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
 
-    # Style the boxplot
+    # Style the boxplot with IEEE academic colors
     for box in bp['boxes']:
-        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+        box.set(facecolor=box_color, edgecolor='black', linewidth=1, alpha=0.6)
     for whisker in bp['whiskers']:
         whisker.set(color='black', linewidth=1)
     for cap in bp['caps']:
         cap.set(color='black', linewidth=1)
     for median in bp['medians']:
-        median.set(color='black', linewidth=1.5)
+        median.set(color='#D95319', linewidth=1.5)  # IEEE orange for contrast
     for flier in bp['fliers']:
-        flier.set(marker='o', markersize=4, markerfacecolor='black',
-                    markeredgecolor='black', alpha=0.5)
+        flier.set(marker='o', markersize=4, markerfacecolor='#7E2F8E',  # IEEE purple
+                  markeredgecolor='black', alpha=0.5)
 
     # Add labels and layout
     plt.xlabel(r'\textbf{Embedding Model}')
     plt.ylabel(r'\textbf{' + naming + '}')
-    plt.title(r'\textbf{Impact of Embedding Model on ' + naming + '}', pad=10)
+    title_prefix = "NSA-GA " if journal else ""
+    plt.title(r'\textbf{Impact of Embedding Model on ' + title_prefix + naming + '}', pad=10)
     plt.xticks(ticks=range(1, len(embedding_models) + 1), labels=embedding_models, rotation=45)
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
 
+    # Add journal to filename if needed
+    filename_suffix = "_journal" if journal else ""
+    
     # Save figure
-    plt.savefig(f'report/results/{column}_boxplot_by_embedding.pdf', format='pdf', bbox_inches='tight')
-    plt.savefig(f'report/results/{column}_boxplot_by_embedding.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_embedding{filename_suffix}.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_embedding{filename_suffix}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-    print(f"Created LaTeX-styled {naming} boxplot by embedding model.")
+    print(f"Created LaTeX-styled {naming} boxplot by embedding model{' (journal version)' if journal else ''}.")
 
-def create_boxplot_by_algorithm(column, naming):
+def create_boxplot_by_algorithm(column, naming, journal):
     """
-    Generates a LaTeX-formatted boxplot comparing the algorithms (NSA-GA and NSA-NSGA-II).
+    Generates a LaTeX-formatted boxplot comparing the algorithms.
+    If journal=True, only includes NSA-GA data (skips NSA-NSGA-II) and adds "journal" to the filename.
     Shows the impact of algorithm selection on performance metrics.
     Outputs high-resolution PNG and PDF.
     """
-
     # Prepare DataFrame
     display_df = df.copy()
     display_df['algorithm'] = display_df['algorithm'].replace({
         'nsgaii': 'NSA-NSGA-II',
         'ga': 'NSA-GA'
     })
+    
+    # If journal is True, only use NSA-GA data
+    if journal:
+        display_df = display_df[display_df['algorithm'] == 'NSA-GA']
 
     # Collect data per algorithm
     algorithms = sorted(display_df['algorithm'].unique())
@@ -389,35 +640,43 @@ def create_boxplot_by_algorithm(column, naming):
 
     # Create figure
     plt.figure(figsize=(6, 6))
+    
+    # IEEE-style color palette - blue-based professional colors
+    box_color = '#0072BD'  # IEEE blue
+    
     bp = plt.boxplot(boxplot_data, patch_artist=True, notch=False, widths=0.6)
 
-    # Style the boxplot
+    # Style the boxplot with IEEE academic colors
     for box in bp['boxes']:
-        box.set(facecolor='lightgray', edgecolor='black', linewidth=1)
+        box.set(facecolor=box_color, edgecolor='black', linewidth=1, alpha=0.6)
     for whisker in bp['whiskers']:
         whisker.set(color='black', linewidth=1)
     for cap in bp['caps']:
         cap.set(color='black', linewidth=1)
     for median in bp['medians']:
-        median.set(color='black', linewidth=1.5)
+        median.set(color='#D95319', linewidth=1.5)  # IEEE orange for contrast
     for flier in bp['fliers']:
-        flier.set(marker='o', markersize=4, markerfacecolor='black',
+        flier.set(marker='o', markersize=4, markerfacecolor='#7E2F8E',  # IEEE purple
                   markeredgecolor='black', alpha=0.5)
 
     # Add labels and layout
     plt.xlabel(r'\textbf{Algorithm}')
     plt.ylabel(r'\textbf{' + naming + '}')
-    plt.title(r'\textbf{Impact of Algorithm on ' + naming + '}', pad=10)
+    title_prefix = "NSA-GA " if journal else ""
+    plt.title(r'\textbf{Impact of Algorithm on ' + title_prefix + naming + '}', pad=10)
     plt.xticks(ticks=range(1, len(algorithms) + 1), labels=algorithms)
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
 
+    # Add journal to filename if needed
+    filename_suffix = "_journal" if journal else ""
+    
     # Save figure
-    plt.savefig(f'report/results/{column}_boxplot_by_algorithm.pdf', format='pdf', bbox_inches='tight')
-    plt.savefig(f'report/results/{column}_boxplot_by_algorithm.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_algorithm{filename_suffix}.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(f'report/results/{column}_boxplot_by_algorithm{filename_suffix}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
-    print(f"Created LaTeX-styled {naming} boxplot comparing algorithms.")
+    print(f"Created LaTeX-styled {naming} boxplot comparing algorithms{' (journal version)' if journal else ''}.")
 
 def plot_f1_precision_recall_negative_space_per_detector_amount():
     """
@@ -537,7 +796,7 @@ def plot_f1_precision_recall_negative_space_per_detector_amount():
         ax2.set_ylabel(r'\textbf{Negative Space Coverage}')
         
         # Title and grid
-        plt.title(f"\\textbf{{Performance Evolution - {algo}, {dataset}, {dim}}}")
+        plt.title(f"\\textbf{{Validation learning curves - {algo}, {dataset}, {dim}}}")
         ax1.grid(True, linestyle='--', alpha=0.6)
         
         # Legend combining both axes
@@ -758,109 +1017,21 @@ def extract_stdev_values():
     print(f"Extracted stdev values saved to {stdev_csv_file} and {stdev_latex_file}")
     return stdev_df
 
-def combine_oneclasssvm_nsa():
-    # algorithm,dataset,dimension,precision_avg,precision_stdev,recall_avg,recall_stdev,accuracy_avg,accuracy_stdev,f1_avg,f1_stdev,true_detected_avg,true_detected_stdev,true_total_avg,true_total_stdev,fake_detected_avg,fake_detected_stdev,fake_total_avg,fake_total_stdev,negative_space_coverage_avg,negative_space_coverage_stdev,time_to_build_avg,time_to_build_stdev,detectors_count_avg,detectors_count_stdev,time_to_infer_avg,time_to_infer_stdev,self_region_avg,self_region_stdev,stagnation
-    ga_nsga_df = pd.read_csv('report/results/averaged_results.csv')
-    # Embedding,Dim,F1-score,Precision,Recall,F1-score (val.),ν,γ,Kernel,tol
-    oneclasssvm_df = pd.read_csv('report/results/onesvm_results_table.csv')
 
-
+def oneclasssvm_comparison_plot(journal):
     """
-    Creates a combined table comparing F1-scores of OneClassSVM, NSA-GA, and NSA-NSGA-II.
-    The table includes embedding model, dimension, and F1-scores for each algorithm.
-    """
-    # Create a mapping of algorithm names
-    ga_nsga_df['algorithm'] = ga_nsga_df['algorithm'].replace({
-        'ga': 'NSA-GA', 
-        'nsgaii': 'NSA-NSGA-II'
-    })
-    
-    # Map the embedding names to their shorter versions
-    ga_nsga_df['dataset'] = ga_nsga_df['dataset'].replace({
-        'roberta-base': 'RoBERTa', 
-        'distilbert-base-cased': 'DistilBERT', 
-        'bert-base-cased': 'BERT', 
-        'fasttext': 'FastText'
-    })
-    
-    # Map the embedding names for OneClassSVM to match
-    oneclasssvm_df['Embedding'] = oneclasssvm_df['Embedding'].replace({
-        'roberta-base': 'RoBERTa', 
-        'distilbert-base-cased': 'DistilBERT', 
-        'bert-base-cased': 'BERT', 
-        'fasttext': 'FastText'
-    })
-    
-    # Create a pivot table with F1 scores for GA and NSGA-II
-    ga_nsga_pivot = ga_nsga_df.pivot_table(
-        values='f1_avg',
-        index=['dataset', 'dimension'],
-        columns='algorithm',
-        aggfunc='first'
-    ).reset_index()
-    
-    # Prepare OneClassSVM data
-    oneclasssvm_f1 = oneclasssvm_df.rename(columns={
-        'Embedding': 'dataset', 
-        'Dim': 'dimension',
-        'F1-score': 'OneClassSVM'
-    })[['dataset', 'dimension', 'OneClassSVM']]
-    
-    # Merge the dataframes
-    combined_df = pd.merge(
-        ga_nsga_pivot, 
-        oneclasssvm_f1,
-        on=['dataset', 'dimension'],
-        how='outer'
-    )
-    
-    # Reorder columns to match requested order: Embedding, Dim, OneClassSVM, NSA-NSGA-II, NSA-GA
-    combined_df = combined_df[['dataset', 'dimension', 'OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']]
-    
-    # Rename columns for better readability
-    combined_df.columns = ['Embedding', 'Dim', 'OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']
-    
-    # Round to 3 decimal places
-    for col in ['OneClassSVM', 'NSA-NSGA-II', 'NSA-GA']:
-        combined_df[col] = combined_df[col].round(3)
-    
-    # Define custom embedding order: RoBERTa, FastText, DistilBERT, BERT
-    embedding_order = {'RoBERTa': 1, 'FastText': 2, 'DistilBERT': 3, 'BERT': 4}
-    combined_df['embedding_order'] = combined_df['Embedding'].map(embedding_order)
-    
-    # Define dimension order
-    dimension_order = {'1D': 1, '2D': 2, '3D': 3, '4D': 4}
-    combined_df['dim_order'] = combined_df['Dim'].map(dimension_order)
-    
-    # Sort by embedding first, then dimension
-    combined_df = combined_df.sort_values(['embedding_order', 'dim_order']).drop(columns=['embedding_order', 'dim_order'])
-    
-    # Save to CSV
-    combined_df.to_csv('report/results/combined_oneclasssvm_nsa_f1_comparison.csv', index=False)
-    
-    # Generate LaTeX table
-    with open('report/results/combined_oneclasssvm_nsa_f1_compariso.tex', 'w') as tf:
-        latex_str = combined_df.to_latex(
-            index=False,
-            float_format=lambda x: f"{x:.3f}" if isinstance(x, float) else x
-        )
-        # Replace the LaTeX table structure with the specified format
-        latex_str = latex_str.replace('\\begin{tabular}', '\\begin{table}[h]\n    \\centering\n    \\begin{tabular}')
-        latex_str = latex_str.replace('\\end{tabular}', '\\end{tabular}\n    \\caption{F1-score comparison across algorithms}\n    \\label{tab:f1_comparison}\n\\end{table}')
-        tf.write(latex_str)
-    
-    print("\nCombined F1-score comparison:")
-    print(combined_df.to_string(index=False))
-    
-    return combined_df
-
-def oneclasssvm_comparison_plot():
-    """
-    Creates a bar chart comparing F1-scores of OneClassSVM, NSA-GA, and NSA-NSGA-II
+    Creates a bar chart comparing F1-scores of OneClassSVM and NSA-GA
     across different embedding models and dimensions.
     """
     df = pd.read_csv("report/results/combined_oneclasssvm_nsa_f1_comparison.csv")
     
+    # If this is for a journal publication, only include OneClassSVM and NSA-GA
+    if journal:
+        df = df[['Embedding', 'Dim', 'OneClassSVM', 'NSA-GA']]
+    else:
+        # Keep all algorithms for the thesis version
+        pass
+        
     # Create a new column that combines Embedding and Dimension for x-axis labels
     df['Embedding_Dim'] = df['Embedding'] + '-' + df['Dim']
     
@@ -868,21 +1039,33 @@ def oneclasssvm_comparison_plot():
     fig, ax = plt.subplots(figsize=(12, 4))
     
     # Find the min and max F1-scores to adjust y-axis limits
-    min_f1 = min(df['OneClassSVM'].min(), df['NSA-NSGA-II'].min(), df['NSA-GA'].min())
-    max_f1 = max(df['OneClassSVM'].max(), df['NSA-NSGA-II'].max(), df['NSA-GA'].max())
+    if journal:
+        min_f1 = min(df['OneClassSVM'].min(), df['NSA-GA'].min())
+        max_f1 = max(df['OneClassSVM'].max(), df['NSA-GA'].max())
+    else:
+        min_f1 = min(df['OneClassSVM'].min(), df['NSA-NSGA-II'].min(), df['NSA-GA'].min())
+        max_f1 = max(df['OneClassSVM'].max(), df['NSA-NSGA-II'].max(), df['NSA-GA'].max())
     
     # Create padding for better visibility (5% of range at bottom, 10% at top)
     y_min = max(0, min_f1 - 0.05)
     y_max = 1.05  # Set y-axis maximum to 1.05
     
     # Set width of bars and positions
-    bar_width = 0.25
+    if journal:
+        bar_width = 0.35  # Wider bars when only two algorithms
+    else:
+        bar_width = 0.25
+    
     x = np.arange(len(df['Embedding_Dim']))
     
-    # Plot bars for each algorithm with blue, green, and red colors
-    bars1 = ax.bar(x - bar_width, df['OneClassSVM'], bar_width, label='OneClassSVM', color=colors[0])
-    bars2 = ax.bar(x, df['NSA-NSGA-II'], bar_width, label='NSA-NSGA-II', color=colors[1])
-    bars3 = ax.bar(x + bar_width, df['NSA-GA'], bar_width, label='NSA-GA', color=colors[2])
+    # Plot bars for each algorithm with colors
+    if journal:
+        bars1 = ax.bar(x - bar_width/2, df['OneClassSVM'], bar_width, label='OneClassSVM', color=colors[0])
+        bars3 = ax.bar(x + bar_width/2, df['NSA-GA'], bar_width, label='NSA-GA', color=colors[2])
+    else:
+        bars1 = ax.bar(x - bar_width, df['OneClassSVM'], bar_width, label='OneClassSVM', color=colors[0])
+        bars2 = ax.bar(x, df['NSA-NSGA-II'], bar_width, label='NSA-NSGA-II', color=colors[1])
+        bars3 = ax.bar(x + bar_width, df['NSA-GA'], bar_width, label='NSA-GA', color=colors[2])
     
     # Add labels, title and legend
     ax.set_xlabel(r'\textbf{Embedding Model and Dimension}', fontsize=12)
@@ -907,11 +1090,15 @@ def oneclasssvm_comparison_plot():
     # Adjust layout to fit all elements
     plt.tight_layout()
     
-    # Save figure
-    plt.savefig('report/results/algorithm_comparison_f1scores.pdf', format='pdf', bbox_inches='tight')
-    plt.savefig('report/results/algorithm_comparison_f1scores.png', dpi=300, bbox_inches='tight')
+    # Save figure with appropriate filename
+    if journal:
+        plt.savefig('report/results/algorithm_comparison_f1scores_journal.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('report/results/algorithm_comparison_f1scores_journal.png', dpi=300, bbox_inches='tight')
+    else:
+        plt.savefig('report/results/algorithm_comparison_f1scores.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig('report/results/algorithm_comparison_f1scores.png', dpi=300, bbox_inches='tight')
     
-    print("Created comparison plot of F1-scores across algorithms.")
+    print(f"Created comparison plot of F1-scores across algorithms{'_journal' if journal else ''}.")
 
 '''{
     "test_precision": 0.9263899765074393,
@@ -1087,25 +1274,29 @@ print(df.to_string(index=False))
 # Create directories if they don't exist
 os.makedirs('results', exist_ok=True)
 
+journal = False
+
 # Create the tables
-best_overall = create_best_overall_table()
-per_embedding = create_per_embedding_tables()
+#best_overall = create_best_overall_table()
+#per_embedding = create_per_embedding_tables()
+#create_combined_embedding_table(True)
 #create_negative_space_coverage_plot()
-'''full_table = create_full_table_sorted_by_f1()
-create_boxplot_by_dimension('f1_avg', 'F1-score')
-create_boxplot_by_dimension('precision_avg', 'Precision')
-create_boxplot_by_dimension('recall_avg', 'Recall')
-create_boxplot_by_dimension('detectors_count_avg', 'Detectors')
-create_boxplot_by_embedding('f1_avg', 'F1-score')
-create_boxplot_by_embedding('precision_avg', 'Precision')
-create_boxplot_by_embedding('recall_avg', 'Recall')
-create_boxplot_by_embedding('detectors_count_avg', 'Detectors')
-create_boxplot_by_algorithm('f1_avg', 'F1-score')
-create_boxplot_by_algorithm('precision_avg', 'Precision')
-create_boxplot_by_algorithm('recall_avg', 'Recall')
-create_boxplot_by_algorithm('detectors_count_avg', 'Detectors')
-plot_f1_precision_recall_negative_space_per_detector_amount()'''
+#full_table = create_full_table_sorted_by_f1()
+'''create_boxplot_by_dimension('f1_avg', 'F1-score', journal)
+create_boxplot_by_dimension('precision_avg', 'Precision', journal)
+create_boxplot_by_dimension('recall_avg', 'Recall', journal)
+create_boxplot_by_dimension('detectors_count_avg', 'Detectors', journal)
+create_boxplot_by_embedding('f1_avg', 'F1-score', journal)
+create_boxplot_by_embedding('precision_avg', 'Precision', journal)
+create_boxplot_by_embedding('recall_avg', 'Recall', journal)
+create_boxplot_by_embedding('detectors_count_avg', 'Detectors', journal)
+create_boxplot_by_algorithm('f1_avg', 'F1-score', False)
+create_boxplot_by_algorithm('precision_avg', 'Precision', False)
+create_boxplot_by_algorithm('recall_avg', 'Recall', False)
+create_boxplot_by_algorithm('detectors_count_avg', 'Detectors', False)'''
+#plot_f1_precision_recall_negative_space_per_detector_amount()
 #plot_detector_models()
 #extract_stdev_values()
-combine_oneclasssvm_nsa()
-oneclasssvm_comparison_plot()
+#oneclasssvm_comparison_plot(journal)
+#plot_objective_function()
+plot_beta_function()

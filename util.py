@@ -55,6 +55,8 @@ def visualize_1d(true_df, fake_df, detector_set, self_region, algo, embedding):
     plt.tight_layout()
     plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_1D_plot.png', dpi=300,
                 bbox_inches='tight', format='png')
+    #plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_1D_plot.pdf', dpi=300,
+    #            bbox_inches='tight', format='pdf')
     #plt.show()
 
 # Create 2D visualization
@@ -130,7 +132,9 @@ def visualize_2d(true_df, fake_df, detector_set, self_region, algo, embedding):
     ax.legend(loc='upper left', fontsize=10)
     
     plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_2D_plot.png', dpi=300,
-                bbox_inches='tight', format='png')  # Save as vector format
+                bbox_inches='tight', format='png')
+    #plt.savefig(f'report/results/detector_plots/{algo}_{embedding}_2D_plot.pdf', dpi=300,
+    #            bbox_inches='tight', format='pdf')
     
 
 
